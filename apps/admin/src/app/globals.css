@@ -1,0 +1,35 @@
+/* Onyx theme — design tokens (full implementation in US-03) */
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #111111;
+  --bg-elevated: #1a1a1a;
+  --accent: #7c6af7;
+  --accent-hover: #6b58f0;
+  --text-primary: #f0f0f0;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --border: #2a2a2a;
+  --error: #f87171;
+  --success: #4ade80;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
