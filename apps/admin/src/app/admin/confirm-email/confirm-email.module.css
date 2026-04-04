@@ -1,0 +1,74 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #0f0f0f);
+  padding: 24px;
+}
+
+.card {
+  background: var(--bg-elevated, #1a1a1a);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.logo {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent, #7c6af7);
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary, #f0f0f0);
+  margin: 0;
+}
+
+.message {
+  color: var(--text-secondary, #ccc);
+  font-size: 14px;
+}
+
+.successBanner {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #4ade80;
+  margin-bottom: 20px;
+}
+
+.error {
+  font-size: 14px;
+  color: #f87171;
+  margin: 0 0 16px;
+}
+
+.footer {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-secondary, #ccc);
+}
+
+.link {
+  color: var(--accent, #7c6af7);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

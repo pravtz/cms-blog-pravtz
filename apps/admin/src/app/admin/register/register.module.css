@@ -78,6 +78,18 @@
   box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.15);
 }
 
+.strengthBar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 6px;
+  transition: background 0.2s, width 0.2s;
+}
+
+.strengthLabel {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
 .error {
   font-size: 13px;
   color: #f87171;

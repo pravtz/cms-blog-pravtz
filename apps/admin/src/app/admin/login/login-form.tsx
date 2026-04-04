@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import styles from './login.module.css'
 
 export default function LoginForm({ setupComplete }: { setupComplete: boolean }) {
@@ -94,6 +95,11 @@ export default function LoginForm({ setupComplete }: { setupComplete: boolean })
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        <p className={styles.footer}>
+          Don&apos;t have an account?{' '}
+          <Link href="/admin/register" className={styles.link}>Create account</Link>
+        </p>
       </div>
     </div>
   )
