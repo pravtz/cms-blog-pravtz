@@ -18,7 +18,7 @@
       "priority": 2,
       "version": "v0.1",
       "prd": "PRD-04",
-      "passes": false,
+      "passes": true,
       "description": "Implement user registration with bcrypt (cost 12), email confirmation (24h token, double opt-in), admin approval flow, and status machine (pending_email → pending_approval → active). Implement JWT login: accessToken (15min) + refreshToken (7d, httpOnly cookie, rotated on use). Implement /api/auth/refresh and /api/auth/logout. Add brute-force protection: 5 failures in 15 min = 30 min IP block. Log all login attempts."
     },
     {

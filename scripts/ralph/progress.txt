@@ -6,6 +6,9 @@
 - Auth helpers (hashPassword, verifyPassword, generateToken, generateRefreshToken) live in `apps/admin/src/lib/auth.ts`.
 - CSS Module files sit next to their component (e.g. `setup.module.css` next to `page.tsx`).
 - Design tokens are CSS custom properties on `:root` — implemented fully in US-03; placeholder values in globals.css for now.
+- Auth middleware for API routes: `requireAuth(request)` / `requireRole(request, ...roles)` in `apps/admin/src/lib/auth-middleware.ts` — returns `{ payload }` on success or a `NextResponse` on failure.
+- Email service in `apps/admin/src/lib/email.ts` reads SMTP settings from the DB via `getSetting()` — silently skips sending if SMTP is not configured.
+- To avoid email enumeration, registration returns 200 even if the email already exists; same response for resend-confirmation.
 
 # Ralph Progress Log
 Started: Sat Apr  4 12:25:18 PDT 2026
@@ -28,4 +31,22 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `export const runtime = 'nodejs'` is required on any route using native Node modules (better-sqlite3, bcrypt)
   - The blog Dockerfile uses `2>/dev/null || true` for optional public/ directory copy
   - nginx uses `server admin:3001` (Docker service name) — make sure service names match docker-compose.yml
+---
+
+## 2026-04-04 - US-02
+- Implemented user registration with bcrypt cost 12, email confirmation (24h UUID token, double opt-in), and admin approval flow
+- Status machine: pending_email → pending_approval → active (already in DB schema from US-01)
+- JWT login with accessToken (15min) + refreshToken (7d httpOnly cookie, rotated on use) — already in place from US-01; login blocks non-active accounts with status-specific messages
+- Brute-force protection (5 failures/15min → 30min IP block) and login attempt logging — already in place from US-01
+- New endpoints: POST /api/auth/register, POST /api/auth/confirm-email, POST /api/auth/resend-confirmation
+- New admin endpoints: GET /api/admin/users (with ?status= filter), POST /api/admin/users/[id]/approve, POST /api/admin/users/[id]/reject
+- Email notifications: confirmation email on register, owner notification on email confirm, approval/rejection notifications
+- New pages: /admin/register (with password strength indicator), /admin/confirm-email (client-side token validation)
+- Login form updated with link to register
+- Files changed: apps/admin/src/lib/email.ts, apps/admin/src/lib/auth-middleware.ts, 5 new API routes, 3 new pages (6 files)
+- **Learnings for future iterations:**
+  - `requireAuth`/`requireRole` helpers in auth-middleware.ts — use for all protected API routes
+  - Email service gracefully skips when SMTP not configured (warn only) — important for dev environments
+  - Client components that fetch on mount use `useEffect` + `useState`; server pages pass searchParams to client components as props
+  - Registration returns 200 (not 201) for existing emails to prevent enumeration; only truly new registrations return 201
 ---
