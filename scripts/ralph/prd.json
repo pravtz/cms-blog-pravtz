@@ -9,7 +9,7 @@
       "priority": 1,
       "version": "v0.1",
       "prd": "PRD-10",
-      "passes": false,
+      "passes": true,
       "description": "Scaffold the full Docker Compose stack (app, blog, db/SQLite, redis, nginx). Implement the 4-step First Run wizard: Owner registration, DB selection, SMTP config, and blog identity. Redirect /admin to /admin/setup when no Owner exists; block re-entry after setup. Generate .env.example with all required variables."
     },
     {

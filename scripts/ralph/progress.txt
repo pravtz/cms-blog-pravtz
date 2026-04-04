@@ -1,3 +1,31 @@
+## Codebase Patterns
+- Monorepo: npm workspaces + Turborepo. Run workspace commands with `npm run <cmd> --workspace=@nexus/<app>`.
+- DB layer lives in `apps/admin/src/lib/db.ts` — `getDb()` returns a singleton better-sqlite3 instance with WAL mode.
+- Migrations are run in `runMigrations()` inside `db.ts`; always use `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` patterns.
+- All Next.js API routes that use better-sqlite3/bcryptjs need `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'`.
+- Auth helpers (hashPassword, verifyPassword, generateToken, generateRefreshToken) live in `apps/admin/src/lib/auth.ts`.
+- CSS Module files sit next to their component (e.g. `setup.module.css` next to `page.tsx`).
+- Design tokens are CSS custom properties on `:root` — implemented fully in US-03; placeholder values in globals.css for now.
+
 # Ralph Progress Log
 Started: Sat Apr  4 12:25:18 PDT 2026
+---
+
+## 2026-04-04 - US-01
+- Implemented full monorepo scaffold: npm workspaces + Turborepo, apps/admin (Next.js 14) + apps/blog (Next.js 14)
+- Created SQLite database layer with WAL mode, foreign keys, and migration runner (better-sqlite3)
+- Implemented 4-step First Run wizard UI (React client component with step validation)
+- API routes: GET /api/setup/status, POST /api/setup/complete (with Zod validation)
+- /admin redirects to /admin/setup if no Owner; blocks re-entry after setup (409)
+- Basic auth API: POST /api/auth/login (bcrypt verify, JWT access+refresh tokens, brute-force 5/15min→30min block), POST /api/auth/logout, POST /api/auth/refresh
+- Docker Compose: admin, blog, redis:7-alpine, nginx:1.25-alpine with health checks and named volumes
+- nginx: rate limiting zones (60/min API, 10/min auth), proxy to admin:3001 and blog:3000
+- .env.example with all required variables documented
+- Files changed: package.json, turbo.json, apps/admin/* (17 files), apps/blog/* (6 files), docker-compose.yml, docker-compose.override.yml, nginx/nginx.conf, nginx/conf.d/nexus.conf, .env.example, .gitignore
+- **Learnings for future iterations:**
+  - better-sqlite3 transactions are synchronous — hash passwords BEFORE entering the transaction
+  - Next.js App Router: server components can call db directly; client components need fetch()
+  - `export const runtime = 'nodejs'` is required on any route using native Node modules (better-sqlite3, bcrypt)
+  - The blog Dockerfile uses `2>/dev/null || true` for optional public/ directory copy
+  - nginx uses `server admin:3001` (Docker service name) — make sure service names match docker-compose.yml
 ---
