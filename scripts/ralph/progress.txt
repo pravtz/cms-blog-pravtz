@@ -16,6 +16,12 @@
 - Storybook: use `@storybook/nextjs` framework (handles CSS Modules automatically). Config in `apps/admin/.storybook/`.
 - Storybook stories for components with required props (Modal, ToastProvider) need default `args` in the `meta` object to satisfy TypeScript even when all stories use custom `render()` functions.
 - Component `style` prop only available if explicitly in the interface — Card, Badge, etc. don't accept arbitrary HTML attrs; use a wrapper `<div>` in stories instead.
+- Editor components live in `apps/admin/src/components/Editor/`; exported from barrel `Editor/index.ts`. Use `@uiw/react-codemirror` + `@codemirror/lang-markdown` + `@codemirror/theme-one-dark`.
+- CodeMirror EditorView ref obtained via `onCreateEditor` callback on `<CodeMirror>` — store in `useRef<EditorView | null>`.
+- Toolbar format operations use `view.dispatch({ changes, selection })` directly — pass viewRef to toolbar component.
+- `react-markdown` custom components: use `ExtraProps` from `react-markdown` + `ClassAttributes`/`HTMLAttributes` from React to type component props without `any`.
+- `@typescript-eslint/no-explicit-any` eslint disable comments will cause lint errors if the rule isn't in project ESLint config — use proper types instead.
+- posts/categories/tags API routes: slugify uses NFD normalization + regex for accented chars; always add `IF NOT EXISTS` indexes.
 
 # Ralph Progress Log
 Started: Sat Apr  4 12:25:18 PDT 2026
@@ -69,6 +75,25 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Focus-trap in Modal: query focusable selectors after open, store previouslyFocused, restore on close
   - ToastProvider manages timers via `useRef<Map<string, Timer>>` to avoid stale-closure issues on dismiss
   - next/font injects CSS variables via `className` on `<html>` — reference with `var(--font-sans-var)` in CSS
+---
+
+## 2026-04-05 - US-05
+- Built full MDX editor at `/admin/posts/new` and `/admin/posts/[id]/edit`
+- Split-view layout (Editor / Split / Preview toggle modes via CodeMirror + react-markdown)
+- EditorToolbar with 19 buttons: bold, italic, strike, H1-H3, link, image, inline-code, code block, blockquote, ul, ol, table, hr, and 4 Callout variants (info/warning/danger/success)
+- FrontmatterDrawer (slide-in panel): title, subtitle, excerpt, category (inline create), tags (multi-select + inline create), publish date, language, visibility (5 levels), cover image, translation link, SEO title/description + live preview snippet with character count indicators
+- Auto-save every 30s when dirty; Ctrl+S / Cmd+S manual save; beforeunload warning on unsaved changes
+- Save status badge (Saved / Saving… / Unsaved changes / Save failed) with aria-live
+- DB migration `002_posts` adds: categories, tags, posts, post_tags tables with FK constraints and indexes
+- API routes: `GET/POST /api/categories`, `GET/POST /api/tags`, `GET/POST /api/posts`, `GET/PUT /api/posts/[id]`
+- Reading time calculation (words ÷ 200) and auto-slug from title on POST
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/package.json, package-lock.json, 8 new API route files, 8 new Editor component files (tsx + module.css), 4 new page files
+- **Learnings for future iterations:**
+  - `@uiw/react-codemirror` exposes `onCreateEditor(view)` callback for getting the raw EditorView ref — needed for programmatic dispatch from toolbar
+  - react-markdown v10 `Components` type requires `ExtraProps` + HTML attr interfaces to properly type custom component renderers without `any`
+  - ESLint in this project doesn't have `@typescript-eslint` plugin, so `no-explicit-any` eslint-disable comments cause hard lint errors — always use proper types
+  - Callout syntax (:::info ... :::) is preprocessed to raw HTML divs before react-markdown since react-markdown doesn't support custom block syntax natively
+  - CodeMirror `height="100%"` requires the parent containers to all have explicit heights — use flex: 1 + min-height: 0 on flex children
 ---
 
 ## 2026-04-05 - US-04

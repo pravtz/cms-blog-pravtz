@@ -45,7 +45,7 @@
       "priority": 5,
       "version": "v0.1",
       "prd": "PRD-06",
-      "passes": false,
+      "passes": true,
       "description": "Build the MDX editor with split-view layout (editor left, rendered preview right), Full Editor and Full Preview toggle modes. Implement the toolbar (bold, italic, strike, H1-H3, link, image picker, code block, inline code, blockquote, lists, table, hr, Callout). Implement FrontmatterDrawer: title, subtitle, excerpt, category (inline create), tags (multi-select, inline create), publish date, language, visibility, cover image picker, translation link, SEO title/description, SEO preview snippet. Auto-save draft every 30s; Ctrl+S manual save. beforeunload warning for unsaved changes."
     },
     {
