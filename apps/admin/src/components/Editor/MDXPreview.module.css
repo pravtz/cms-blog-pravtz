@@ -59,6 +59,23 @@
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
+/* Shiki-highlighted code block wrapper */
+.shikiBlock {
+  margin: var(--space-4) 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+/* Shiki outputs a <pre> — reset its margin and ensure scroll */
+.shikiBlock :global(pre) {
+  margin: 0;
+  padding: var(--space-4);
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+
 .pre {
   background: var(--bg-elevated);
   border: 1px solid var(--border);

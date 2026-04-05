@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
 import { getDb } from '@/lib/db'
+import { sanitizeMDX } from '@/lib/mdx'
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
 
@@ -101,7 +102,9 @@ export async function POST(request: NextRequest) {
 
   const baseSlug = data.title ? slugify(data.title) : ''
   const slug = uniqueSlug(baseSlug)
-  const readingTime = calcReadingTime(data.content)
+  // Sanitize content before storing to strip any dangerous HTML/XSS vectors
+  const safeContent = sanitizeMDX(data.content)
+  const readingTime = calcReadingTime(safeContent)
 
   const insertPost = db.prepare(`
     INSERT INTO posts (
@@ -124,7 +127,7 @@ export async function POST(request: NextRequest) {
       data.subtitle ?? null,
       slug,
       data.excerpt ?? null,
-      data.content,
+      safeContent,
       data.status,
       data.visibility,
       data.language,

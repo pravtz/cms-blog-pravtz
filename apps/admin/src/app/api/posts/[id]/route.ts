@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
 import { getDb } from '@/lib/db'
+import { sanitizeMDX } from '@/lib/mdx'
 import { z } from 'zod'
 
 function slugify(text: string): string {
@@ -117,10 +118,11 @@ export async function PUT(
   if (data.subtitle !== undefined) { updates.push('subtitle = ?'); values.push(data.subtitle) }
   if (data.excerpt !== undefined) { updates.push('excerpt = ?'); values.push(data.excerpt) }
   if (data.content !== undefined) {
+    const safeContent = sanitizeMDX(data.content)
     updates.push('content = ?')
-    values.push(data.content)
+    values.push(safeContent)
     updates.push('reading_time = ?')
-    values.push(calcReadingTime(data.content))
+    values.push(calcReadingTime(safeContent))
   }
   if (data.status !== undefined) { updates.push('status = ?'); values.push(data.status) }
   if (data.visibility !== undefined) { updates.push('visibility = ?'); values.push(data.visibility) }
@@ -145,5 +147,30 @@ export async function PUT(
     }
   })()
 
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
+  const db = getDb()
+  const existing = db
+    .prepare('SELECT id, author_id FROM posts WHERE id = ?')
+    .get(params.id) as { id: string; author_id: string } | undefined
+
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const { payload } = auth
+  if (payload.role !== 'owner' && existing.author_id !== payload.sub) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  db.prepare('DELETE FROM posts WHERE id = ?').run(params.id)
   return NextResponse.json({ ok: true })
 }
