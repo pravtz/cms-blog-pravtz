@@ -5,7 +5,11 @@
 - All Next.js API routes that use better-sqlite3/bcryptjs need `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'`.
 - Auth helpers (hashPassword, verifyPassword, generateToken, generateRefreshToken) live in `apps/admin/src/lib/auth.ts`.
 - CSS Module files sit next to their component (e.g. `setup.module.css` next to `page.tsx`).
-- Design tokens are CSS custom properties on `:root` — implemented fully in US-03; placeholder values in globals.css for now.
+- Design tokens are CSS custom properties on `:root` in `apps/admin/src/app/globals.css`; full Onyx theme implemented in US-03.
+- Base components live in `apps/admin/src/components/` with co-located CSS Modules. Import from the barrel `@/components/index.ts`.
+- `Input` prop interface uses `Omit<InputHTMLAttributes, 'prefix' | 'suffix'>` to avoid collision with HTML attribute types.
+- `Modal` and `Toast` are `'use client'` components; Modal implements focus-trap + Escape handler + body-scroll-lock.
+- `ToastProvider` must wrap the app (or a subtree) to use `useToast()` hook. Add it to `layout.tsx` when needed.
 - Auth middleware for API routes: `requireAuth(request)` / `requireRole(request, ...roles)` in `apps/admin/src/lib/auth-middleware.ts` — returns `{ payload }` on success or a `NextResponse` on failure.
 - Email service in `apps/admin/src/lib/email.ts` reads SMTP settings from the DB via `getSetting()` — silently skips sending if SMTP is not configured.
 - To avoid email enumeration, registration returns 200 even if the email already exists; same response for resend-confirmation.
@@ -49,4 +53,17 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Email service gracefully skips when SMTP not configured (warn only) — important for dev environments
   - Client components that fetch on mount use `useEffect` + `useState`; server pages pass searchParams to client components as props
   - Registration returns 200 (not 201) for existing emails to prevent enumeration; only truly new registrations return 201
+---
+
+## 2026-04-04 - US-03
+- Expanded `globals.css` with full Onyx design tokens: color palette, typography scale (text-hero → text-xs), spacing scale (4px base, --space-1 through --space-16), border-radius, shadows, z-index layers, transitions, and semantic colors (all WCAG 2.1 AA ≥ 4.5:1)
+- Updated `layout.tsx` to import Inter + Newsreader via `next/font/google` with CSS variable injection
+- Created base components with CSS Modules: Button (primary/secondary/ghost/danger, sm/md/lg, loading spinner), Input (label, hint, error, prefix/suffix), Card + CardHeader + CardBody + CardFooter, Modal (focus-trap, Escape close, body-scroll-lock, aria-dialog), Badge (6 variants, dot indicator), Toast + ToastProvider + useToast (aria-live, animation, auto-dismiss)
+- Created barrel export at `apps/admin/src/components/index.ts`
+- Files changed: apps/admin/src/app/globals.css, apps/admin/src/app/layout.tsx, 13 new files in apps/admin/src/components/
+- **Learnings for future iterations:**
+  - `Omit<InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'suffix'>` is required to use `prefix`/`suffix` as custom React props — native HTML types conflict
+  - Focus-trap in Modal: query focusable selectors after open, store previouslyFocused, restore on close
+  - ToastProvider manages timers via `useRef<Map<string, Timer>>` to avoid stale-closure issues on dismiss
+  - next/font injects CSS variables via `className` on `<html>` — reference with `var(--font-sans-var)` in CSS
 ---

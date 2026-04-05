@@ -27,7 +27,7 @@
       "priority": 3,
       "version": "v0.1",
       "prd": "PRD-01",
-      "passes": false,
+      "passes": true,
       "description": "Implement CSS design tokens for the Onyx theme: color palette (--bg-primary, --bg-secondary, --bg-elevated, --accent, --text-*, --border), typography scale (Newsreader + Inter, text-hero through text-xs), spacing scale (4px base), border-radius tokens, and semantic colors. All colors must pass WCAG 2.1 AA contrast (4.5:1). Implement base components: Button (primary/secondary/ghost/danger), Input, Card, Modal, Badge, Toast. Include :focus-visible and prefers-reduced-motion support."
     },
     {
