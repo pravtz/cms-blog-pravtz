@@ -54,7 +54,7 @@
       "priority": 6,
       "version": "v0.1",
       "prd": "PRD-06",
-      "passes": false,
+      "passes": true,
       "description": "Implement post CRUD backend (create, read, update, delete, list). Support publishing posts with visibility=public. Implement MDX rendering with Shiki syntax highlighting (dark theme aligned to Design System), styled blockquotes, custom lists, figure+figcaption images, Callout components (info/warning/danger/success), and footnotes. Auto-generate slug from title. Calculate readingTime (words ÷ 200). Sanitize MDX content with DOMPurify server-side before storing."
     },
     {

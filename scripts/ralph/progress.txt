@@ -1,4 +1,10 @@
 ## Codebase Patterns
+- `lib/mdx.ts` exports `sanitizeMDX(content)` (sync, server-side sanitization before DB store) and `renderMDX(content)` (async, unified pipeline → Shiki → HTML, for blog rendering).
+- Shiki v4 is installed. Server-side: `import { codeToHtml } from 'shiki'`. Client-side (browser): `import('shiki/bundle/web')` via dynamic import inside useEffect.
+- `hast-util-to-html` is available as a transitive dep (from react-markdown). Use `processor.parse()` + `await processor.run()` to get the hast tree, then `toHtml(hast)` — do NOT use `processor.process()` without rehype-stringify.
+- Unified pipeline packages available as transitive deps (via react-markdown): unified, remark-parse, remark-gfm, remark-rehype, hast-util-to-html. Import them with dynamic `await import()` in server utilities.
+- sanitize-html is installed in admin. Import as `import sanitizeHtml from 'sanitize-html'`.
+
 - Monorepo: npm workspaces + Turborepo. Run workspace commands with `npm run <cmd> --workspace=@nexus/<app>`.
 - DB layer lives in `apps/admin/src/lib/db.ts` — `getDb()` returns a singleton better-sqlite3 instance with WAL mode.
 - Migrations are run in `runMigrations()` inside `db.ts`; always use `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` patterns.
@@ -94,6 +100,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - ESLint in this project doesn't have `@typescript-eslint` plugin, so `no-explicit-any` eslint-disable comments cause hard lint errors — always use proper types
   - Callout syntax (:::info ... :::) is preprocessed to raw HTML divs before react-markdown since react-markdown doesn't support custom block syntax natively
   - CodeMirror `height="100%"` requires the parent containers to all have explicit heights — use flex: 1 + min-height: 0 on flex children
+---
+
+## 2026-04-05 - US-06
+- Added DELETE endpoint to `GET/PUT /api/posts/[id]` — owners can delete any post, authors only their own
+- Added `sanitizeMDX()` using `sanitize-html`: applied to content in both POST `/api/posts` and PUT `/api/posts/[id]` before DB storage; strips `<script>`, event handlers, `javascript:` URLs while preserving callout divs, code, images, tables
+- Created `apps/admin/src/lib/mdx.ts` with server-side MDX renderer (`renderMDX`): unified pipeline (remark-parse + remark-gfm + remark-rehype + hast-util-to-html) + Shiki `codeToHtml` for syntax highlighting using `github-dark-default` theme; preprocesses `:::callout:::` syntax; replaces `<pre><code>` blocks with Shiki-highlighted output
+- Upgraded `MDXPreview.tsx` to async-load Shiki (`shiki/bundle/web`) client-side via `useEffect`: extracts code blocks from markdown, highlights them in parallel, replaces plain code blocks with Shiki HTML; includes `.shikiBlock` CSS wrapper with overflow scroll
+- Created `/admin/posts/page.tsx` — posts list page with status filter tabs (All/Draft/Published/Scheduled), sortable table (title, status, visibility, category, read time, updated), inline Publish/Unpublish/Delete actions, skeleton loading state, pagination
+- Files changed: `apps/admin/package.json`, `apps/admin/src/lib/mdx.ts` (new), `apps/admin/src/app/api/posts/route.ts`, `apps/admin/src/app/api/posts/[id]/route.ts`, `apps/admin/src/components/Editor/MDXPreview.tsx`, `apps/admin/src/components/Editor/MDXPreview.module.css`, `apps/admin/src/app/admin/posts/page.tsx` (new), `apps/admin/src/app/admin/posts/page.module.css` (new)
+- **Learnings for future iterations:**
+  - `hast-util-to-html` is available as a transitive dep from react-markdown — use `processor.parse()` + `await processor.run()` to get hast, then `toHtml(hast)`. Never use `processor.process()` without rehype-stringify attached.
+  - Shiki v4 API: `codeToHtml(code, { lang, theme })` — async, works server-side. For browser: `import('shiki/bundle/web')` dynamic import in useEffect.
+  - Code block key matching for Shiki preview: the key needs to handle trailing newlines in `children` (react-markdown strips the trailing `\n` inconsistently). Try both `code\n` and `code` as fallback keys.
+  - `sanitize-html` is a CommonJS package — import with `import sanitizeHtml from 'sanitize-html'` (default import works fine in TypeScript with esModuleInterop).
 ---
 
 ## 2026-04-05 - US-04
