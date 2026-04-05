@@ -36,7 +36,7 @@
       "priority": 4,
       "version": "v0.1",
       "prd": "PRD-01",
-      "passes": false,
+      "passes": true,
       "description": "Set up Storybook with @storybook/addon-a11y. Document all base components (Button, Input, Card, Modal, Badge, Toast) with stories for every state, variant, and theme. Mark components with stable/beta/deprecated status. Zero a11y violations on all stories."
     },
     {

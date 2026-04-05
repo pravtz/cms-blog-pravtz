@@ -13,6 +13,9 @@
 - Auth middleware for API routes: `requireAuth(request)` / `requireRole(request, ...roles)` in `apps/admin/src/lib/auth-middleware.ts` — returns `{ payload }` on success or a `NextResponse` on failure.
 - Email service in `apps/admin/src/lib/email.ts` reads SMTP settings from the DB via `getSetting()` — silently skips sending if SMTP is not configured.
 - To avoid email enumeration, registration returns 200 even if the email already exists; same response for resend-confirmation.
+- Storybook: use `@storybook/nextjs` framework (handles CSS Modules automatically). Config in `apps/admin/.storybook/`.
+- Storybook stories for components with required props (Modal, ToastProvider) need default `args` in the `meta` object to satisfy TypeScript even when all stories use custom `render()` functions.
+- Component `style` prop only available if explicitly in the interface — Card, Badge, etc. don't accept arbitrary HTML attrs; use a wrapper `<div>` in stories instead.
 
 # Ralph Progress Log
 Started: Sat Apr  4 12:25:18 PDT 2026
@@ -66,4 +69,24 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Focus-trap in Modal: query focusable selectors after open, store previouslyFocused, restore on close
   - ToastProvider manages timers via `useRef<Map<string, Timer>>` to avoid stale-closure issues on dismiss
   - next/font injects CSS variables via `className` on `<html>` — reference with `var(--font-sans-var)` in CSS
+---
+
+## 2026-04-05 - US-04
+- Installed Storybook 8.6 with `@storybook/nextjs` framework, `@storybook/addon-a11y`, `@storybook/addon-essentials`, and `@chromatic-com/storybook`
+- Created `.storybook/main.ts` (framework: nextjs, stories glob, addons) and `.storybook/preview.ts` (imports globals.css, background presets, a11y config)
+- Added `storybook` and `build-storybook` scripts to `apps/admin/package.json`
+- Wrote stories for all 6 base components — each with `@status stable` JSDoc, `autodocs` tag, and stories for every variant, size, and state:
+  - `Button.stories.tsx`: Primary/Secondary/Ghost/Danger, Small/Medium/Large, Loading, Disabled, FullWidth, AllVariants/AllSizes grids
+  - `Input.stories.tsx`: Default, WithHint, WithError, Required, WithPrefix, WithSuffix, Password, Disabled, AllStates
+  - `Card.stories.tsx`: Default, WithHeader, WithHeaderAndFooter, Elevated, Interactive, NoPadding, AllVariants
+  - `Modal.stories.tsx`: Default, Small, Large, WithFooter, DisableOverlayClose, WithForm (interactive ModalDemo wrapper manages open state)
+  - `Badge.stories.tsx`: All 6 variants, All 3 sizes, WithDot, AllVariants/AllVariantsWithDot/AllSizes grids
+  - `Toast.stories.tsx`: AllVariants, Success, Error, Warning, Info, Persistent (interactive ToastTriggers wrapper inside ToastProvider)
+- Configured Storybook background to default to `#0f0f0f` (Onyx bg-primary) for correct design-token contrast
+- Files changed: apps/admin/package.json, package-lock.json, apps/admin/.storybook/main.ts, apps/admin/.storybook/preview.ts, 6 × *.stories.tsx
+- **Learnings for future iterations:**
+  - `@storybook/nextjs` handles Next.js CSS Modules and fonts automatically — no extra webpack config needed
+  - For components with required props, add `args` to meta (even placeholder values) so TypeScript is satisfied when all stories use `render()`
+  - `'use client'` components (Modal, Toast) should be wrapped in interactive demo components in stories, not rendered directly via args
+  - `Card` doesn't spread HTML attributes so `style` prop must be avoided; wrap in a plain `<div>` for layout purposes in stories
 ---
