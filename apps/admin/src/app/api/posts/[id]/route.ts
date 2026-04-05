@@ -1,0 +1,149 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth-middleware'
+import { getDb } from '@/lib/db'
+import { z } from 'zod'
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120)
+}
+
+function calcReadingTime(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.round(words / 200))
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
+  const db = getDb()
+  const post = db
+    .prepare(`
+      SELECT p.*, u.name as author_name, c.name as category_name, c.id as category_id
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.id = ?
+    `)
+    .get(params.id) as Record<string, unknown> | undefined
+
+  if (!post) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const tags = db
+    .prepare(`
+      SELECT t.id, t.name, t.slug
+      FROM tags t
+      JOIN post_tags pt ON pt.tag_id = t.id
+      WHERE pt.post_id = ?
+    `)
+    .all(params.id)
+
+  return NextResponse.json({ post: { ...post, tags } })
+}
+
+const UpdatePostSchema = z.object({
+  title: z.string().max(500).optional(),
+  subtitle: z.string().max(500).optional().nullable(),
+  excerpt: z.string().max(1000).optional().nullable(),
+  content: z.string().optional(),
+  status: z.enum(['draft', 'published', 'scheduled']).optional(),
+  visibility: z.enum(['public', 'allPrivate', 'groupPrivate', 'listPrivate', 'iPrivate']).optional(),
+  language: z.string().optional(),
+  category_id: z.string().uuid().optional().nullable(),
+  tag_ids: z.array(z.string().uuid()).optional(),
+  cover_image: z.string().optional().nullable(),
+  seo_title: z.string().max(200).optional().nullable(),
+  seo_description: z.string().max(500).optional().nullable(),
+  publish_date: z.string().optional().nullable(),
+  translation_link: z.string().optional().nullable(),
+})
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const auth = await requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
+  const db = getDb()
+  const existing = db
+    .prepare('SELECT id, author_id, title, slug FROM posts WHERE id = ?')
+    .get(params.id) as { id: string; author_id: string; title: string; slug: string } | undefined
+
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  // Authors can only edit their own posts; owners can edit any
+  const { payload } = auth
+  if (payload.role !== 'owner' && existing.author_id !== payload.sub) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const parsed = UpdatePostSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+  }
+
+  const data = parsed.data
+  const updates: string[] = ['updated_at = datetime(\'now\')']
+  const values: unknown[] = []
+
+  if (data.title !== undefined) {
+    updates.push('title = ?')
+    values.push(data.title)
+    // Regenerate slug only if title changed and slug still matches old title pattern
+    const newSlug = data.title
+      ? slugify(data.title) + '-' + existing.slug.split('-').pop()
+      : existing.slug
+    updates.push('slug = ?')
+    values.push(newSlug)
+  }
+  if (data.subtitle !== undefined) { updates.push('subtitle = ?'); values.push(data.subtitle) }
+  if (data.excerpt !== undefined) { updates.push('excerpt = ?'); values.push(data.excerpt) }
+  if (data.content !== undefined) {
+    updates.push('content = ?')
+    values.push(data.content)
+    updates.push('reading_time = ?')
+    values.push(calcReadingTime(data.content))
+  }
+  if (data.status !== undefined) { updates.push('status = ?'); values.push(data.status) }
+  if (data.visibility !== undefined) { updates.push('visibility = ?'); values.push(data.visibility) }
+  if (data.language !== undefined) { updates.push('language = ?'); values.push(data.language) }
+  if (data.category_id !== undefined) { updates.push('category_id = ?'); values.push(data.category_id) }
+  if (data.cover_image !== undefined) { updates.push('cover_image = ?'); values.push(data.cover_image) }
+  if (data.seo_title !== undefined) { updates.push('seo_title = ?'); values.push(data.seo_title) }
+  if (data.seo_description !== undefined) { updates.push('seo_description = ?'); values.push(data.seo_description) }
+  if (data.publish_date !== undefined) { updates.push('publish_date = ?'); values.push(data.publish_date) }
+  if (data.translation_link !== undefined) { updates.push('translation_link = ?'); values.push(data.translation_link) }
+
+  const deleteTags = db.prepare('DELETE FROM post_tags WHERE post_id = ?')
+  const insertTag = db.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)')
+
+  db.transaction(() => {
+    db.prepare(`UPDATE posts SET ${updates.join(', ')} WHERE id = ?`).run(...values, params.id)
+    if (data.tag_ids !== undefined) {
+      deleteTags.run(params.id)
+      for (const tagId of data.tag_ids) {
+        insertTag.run(params.id, tagId)
+      }
+    }
+  })()
+
+  return NextResponse.json({ ok: true })
+}

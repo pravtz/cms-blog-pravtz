@@ -59,6 +59,57 @@ function runMigrations(database: Database.Database): void {
 
       CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address, attempted_at);
     `,
+    '002_posts': `
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        slug TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        slug TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL DEFAULT '',
+        subtitle TEXT,
+        slug TEXT UNIQUE,
+        excerpt TEXT,
+        content TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'draft',
+        visibility TEXT NOT NULL DEFAULT 'public',
+        language TEXT NOT NULL DEFAULT 'pt-BR',
+        author_id TEXT NOT NULL,
+        category_id TEXT,
+        cover_image TEXT,
+        reading_time INTEGER,
+        seo_title TEXT,
+        seo_description TEXT,
+        publish_date TEXT,
+        translation_link TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (author_id) REFERENCES users(id),
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS post_tags (
+        post_id TEXT NOT NULL,
+        tag_id TEXT NOT NULL,
+        PRIMARY KEY (post_id, tag_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
+      CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
+      CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
+    `,
   }
 
   const applied = database
