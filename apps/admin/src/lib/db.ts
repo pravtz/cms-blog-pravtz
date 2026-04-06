@@ -114,6 +114,22 @@ function runMigrations(database: Database.Database): void {
       ALTER TABLE posts ADD COLUMN views INTEGER NOT NULL DEFAULT 0;
       CREATE INDEX IF NOT EXISTS idx_posts_views ON posts(views);
     `,
+    '004_newsletter': `
+      CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        token TEXT UNIQUE,
+        token_expires TEXT,
+        unsubscribe_token TEXT NOT NULL UNIQUE,
+        confirmed_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_newsletter_email ON newsletter_subscribers(email);
+      CREATE INDEX IF NOT EXISTS idx_newsletter_token ON newsletter_subscribers(token);
+      CREATE INDEX IF NOT EXISTS idx_newsletter_unsubscribe ON newsletter_subscribers(unsubscribe_token);
+    `,
   }
 
   const applied = database

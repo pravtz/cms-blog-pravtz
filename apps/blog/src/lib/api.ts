@@ -135,3 +135,61 @@ export async function getTags(): Promise<Tag[]> {
     return []
   }
 }
+
+export interface PostDetail {
+  id: string
+  title: string
+  subtitle: string | null
+  slug: string
+  excerpt: string | null
+  content_html: string
+  status: string
+  visibility: string
+  language: string
+  cover_image: string | null
+  reading_time: number | null
+  seo_title: string | null
+  seo_description: string | null
+  publish_date: string | null
+  translation_link: string | null
+  views: number
+  created_at: string
+  updated_at: string
+  author_name: string | null
+  category_name: string | null
+  category_slug: string | null
+  category_id: string | null
+  tags: Array<{ name: string; slug: string }>
+}
+
+export interface PostWithRecommendations {
+  post: PostDetail
+  recommendations: Post[]
+}
+
+export async function getPost(slug: string): Promise<PostWithRecommendations | null> {
+  try {
+    const res = await fetch(
+      `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(slug)}`,
+      { next: { revalidate: 60 } }
+    )
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+export async function getAllPostSlugs(): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `${ADMIN_URL}/api/blog/posts?limit=1000&page=1`,
+      { next: { revalidate: 300 } }
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.posts as Post[]).map((p) => p.slug)
+  } catch {
+    return []
+  }
+}

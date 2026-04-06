@@ -1,0 +1,22 @@
+.main {
+  min-height: 100vh;
+  padding: var(--space-10) var(--space-4) var(--space-20);
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.newsletterSection {
+  margin-top: var(--space-16);
+  padding-top: var(--space-10);
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: var(--space-12) var(--space-8) var(--space-24);
+  }
+}

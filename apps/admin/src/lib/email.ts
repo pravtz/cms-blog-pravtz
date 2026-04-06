@@ -100,6 +100,32 @@ export async function sendRejectionNotification(
   })
 }
 
+export async function sendNewsletterConfirmation(
+  to: string,
+  token: string,
+  blogUrl: string
+): Promise<void> {
+  const transporter = getTransporter()
+  if (!transporter) {
+    console.warn('[email] SMTP not configured — skipping newsletter confirmation send')
+    return
+  }
+
+  const confirmUrl = `${blogUrl}/newsletter/confirm?token=${token}`
+
+  await transporter.sendMail({
+    from: getFromAddress(),
+    to,
+    subject: 'Confirme sua inscrição na newsletter',
+    text: `Obrigado por se inscrever!\n\nClique no link abaixo para confirmar sua inscrição:\n\n${confirmUrl}\n\nEste link expira em 48 horas.\n\nSe você não se inscreveu, pode ignorar este e-mail.`,
+    html: `<p>Obrigado por se inscrever!</p>
+<p>Clique no link abaixo para confirmar sua inscrição na nossa newsletter:</p>
+<p><a href="${confirmUrl}">Confirmar inscrição</a></p>
+<p>Este link expira em 48 horas.</p>
+<p>Se você não se inscreveu, pode ignorar este e-mail.</p>`,
+  })
+}
+
 export async function sendOwnerPendingUserNotification(
   ownerEmail: string,
   newUserName: string,
