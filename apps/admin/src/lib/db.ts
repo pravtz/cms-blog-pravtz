@@ -110,6 +110,10 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
       CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
     `,
+    '003_blog_metrics': `
+      ALTER TABLE posts ADD COLUMN views INTEGER NOT NULL DEFAULT 0;
+      CREATE INDEX IF NOT EXISTS idx_posts_views ON posts(views);
+    `,
   }
 
   const applied = database

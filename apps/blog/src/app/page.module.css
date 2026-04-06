@@ -1,0 +1,56 @@
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+/* Below hero: PostGrid (main) + BioCard (sidebar) */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.gridSection {
+  min-width: 0; /* prevent grid blowout */
+}
+
+.gridSection h2 {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-6);
+}
+
+.sidebar {
+  /* BioCard is position:sticky inside */
+}
+
+/* Tablet: sidebar moves below grid */
+@media (max-width: 1024px) {
+  .main {
+    padding: var(--space-6) var(--space-5);
+    gap: var(--space-8);
+  }
+
+  .body {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  /* On tablet, show BioCard above grid */
+  .sidebar {
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: var(--space-5) var(--space-4);
+    gap: var(--space-6);
+  }
+}
