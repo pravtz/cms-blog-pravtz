@@ -72,7 +72,7 @@
       "priority": 8,
       "version": "v0.1",
       "prd": "PRD-02",
-      "passes": false,
+      "passes": true,
       "description": "Build the SSG blog feed (/blog). Implement SearchBar (real-time autocomplete, 300ms debounce, / shortcut, empty state), FilterBar (sticky, category dropdown, tag multi-select, date year/month, active chips, URL-reflected filters, dynamic H1). PostCardList (vertical editorial layout, thumbnail left, 20/page pagination). SEO: dynamic title+description per filter, JSON-LD ItemList, sitemaps per category/tag/date, noindex for search queries."
     },
     {

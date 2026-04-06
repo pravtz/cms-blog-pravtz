@@ -2,6 +2,8 @@
 - Blog `PostGrid.tsx` is a `'use client'` component; receives `initialPosts` + `total` from SSG page; LoadMore fetches from blog's own `/api/posts` route (which proxies to admin's `/api/blog/posts`).
 - Blog's `next.config.js` uses `images.remotePatterns` with `{ protocol: 'https'/'http', hostname: '**' }` to allow any remote cover image.
 - Blog home page uses `export const revalidate = 60` (ISR) for automatic page refresh.
+- Blog feed page at `/blog` uses `searchParams` (Next.js server component) for SSR + ISR; interactive filtering via `router.push` re-renders the server component. Client components using `useSearchParams()` must be wrapped in `<Suspense>`.
+- Blog filter-based pages (category/tag/year) stay indexed; only `?q=` search query pages get `noindex` to prevent duplicate content issues.
 - `lib/mdx.ts` exports `sanitizeMDX(content)` (sync, server-side sanitization before DB store) and `renderMDX(content)` (async, unified pipeline → Shiki → HTML, for blog rendering).
 - Shiki v4 is installed. Server-side: `import { codeToHtml } from 'shiki'`. Client-side (browser): `import('shiki/bundle/web')` via dynamic import inside useEffect.
 - `hast-util-to-html` is available as a transitive dep (from react-markdown). Use `processor.parse()` + `await processor.run()` to get the hast tree, then `toHtml(hast)` — do NOT use `processor.process()` without rehype-stringify.
@@ -154,4 +156,27 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - next.config.js `images.remotePatterns` with `hostname: '**'` allows any origin for cover_image — needed since image URLs are user-supplied
   - `PostGrid` mosaic: `grid-template-columns: 2fr 1fr` for featured row, then `repeat(3, 1fr)` for regular grid
   - layout.tsx `metadata.metadataBase` must be set for og:image URL resolution to work correctly in generateMetadata
+---
+
+## 2026-04-06 - US-08
+- Built SSG blog feed at `/blog` with ISR (revalidate: 60s)
+- SearchBar: real-time autocomplete with 300ms debounce, `/` shortcut to focus, Esc to clear, keyboard arrow navigation in suggestions, spinner during fetch
+- FilterBar: sticky, category dropdown, tag dropdown, year/month date pickers, active filter chips with individual remove buttons, "Limpar todos" button, URL-reflected via router.push
+- Dynamic H1: changes based on active filters (category name, #tag, year/month, search query)
+- FeedPostCard: vertical editorial layout with thumbnail left (200px), title+excerpt on right, tags link to filtered feed
+- PostCardList: vertical list with 20/page pagination (smart ellipsis), client-side page navigation, syncs with server-rendered initial data
+- FeedPageClient: client wrapper that composes SearchBar + FilterBar + PostCardList; handles search → URL push
+- SEO: dynamic generateMetadata (title, description, og per filter), noindex for ?q= search queries, JSON-LD ItemList per page
+- Sitemap at `/blog/sitemap.ts`: main feed + per-category + per-tag + year pages
+- Admin API extended: `/api/blog/posts` now supports q/category/tag/year/month params; added `/api/blog/categories` and `/api/blog/tags` endpoints
+- Blog API proxy routes: `/api/posts` forwards all filter params; added `/api/categories` and `/api/tags` proxy routes
+- SkeletonCard updated with `SkeletonFeedCard` and `listLayout` prop for list layout shimmer
+- Files changed: apps/admin/src/app/api/blog/posts/route.ts, +categories/route.ts, +tags/route.ts; apps/blog/src/lib/api.ts, api/posts/route.ts, +api/categories/route.ts, +api/tags/route.ts; +app/blog/page.tsx, page.module.css, sitemap.ts; +components/FeedPostCard.tsx, FeedPostCard.module.css, SearchBar.tsx, SearchBar.module.css, FilterBar.tsx, FilterBar.module.css, PostCardList.tsx, PostCardList.module.css, FeedPageClient.tsx, FeedPageClient.module.css; updated SkeletonCard.tsx, SkeletonCard.module.css
+- **Learnings for future iterations:**
+  - Blog feed page uses Next.js `searchParams` (server component) for SSR + ISR; filter changes via `router.push` cause server re-render with new params
+  - For sticky FilterBar with `position: sticky; top: 0`, ensure parent has no `overflow: hidden` that would clip it
+  - `useSearchParams()` in Next.js client components requires Suspense boundary in parent — wrap client components using it with `<Suspense>`
+  - SQLite parameterized queries with `better-sqlite3`: `db.prepare(...).get(...params)` with spread works for variable-length condition arrays; for `get()` (COUNT query) same pattern applies
+  - noindex via `robots: { index: false }` in generateMetadata only works when searchParams has `q` — filter-based pages (category/tag/year) remain indexed for SEO
+  - Blog API proxies at `/api/posts` should forward all supported filter params via URLSearchParams to admin — keeps admin as single source of truth
 ---
