@@ -7,6 +7,9 @@
 - `lib/mdx.ts` exports `sanitizeMDX(content)` (sync, server-side sanitization before DB store) and `renderMDX(content)` (async, unified pipeline → Shiki → HTML, for blog rendering).
 - Shiki v4 is installed. Server-side: `import { codeToHtml } from 'shiki'`. Client-side (browser): `import('shiki/bundle/web')` via dynamic import inside useEffect.
 - `hast-util-to-html` is available as a transitive dep (from react-markdown). Use `processor.parse()` + `await processor.run()` to get the hast tree, then `toHtml(hast)` — do NOT use `processor.process()` without rehype-stringify.
+- Blog post page: admin `/api/blog/posts/[slug]` renders MDX server-side and returns `content_html`; blog uses `dangerouslySetInnerHTML` — no shiki needed in blog.
+- CSS Module `:global()` is needed to style `dangerouslySetInnerHTML` HTML content (e.g. `.content :global(h2) { ... }`).
+- `NEXT_PUBLIC_ADMIN_URL` env var is for client-side fetches to admin; `ADMIN_URL` (no PUBLIC prefix) is server-only.
 - Unified pipeline packages available as transitive deps (via react-markdown): unified, remark-parse, remark-gfm, remark-rehype, hast-util-to-html. Import them with dynamic `await import()` in server utilities.
 - sanitize-html is installed in admin. Import as `import sanitizeHtml from 'sanitize-html'`.
 
@@ -179,4 +182,30 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - SQLite parameterized queries with `better-sqlite3`: `db.prepare(...).get(...params)` with spread works for variable-length condition arrays; for `get()` (COUNT query) same pattern applies
   - noindex via `robots: { index: false }` in generateMetadata only works when searchParams has `q` — filter-based pages (category/tag/year) remain indexed for SEO
   - Blog API proxies at `/api/posts` should forward all supported filter params via URLSearchParams to admin — keeps admin as single source of truth
+---
+
+## 2026-04-06 - US-09
+- Implemented post reading page at `/blog/[slug]` with ISR (revalidate=60)
+- FloatingProgressBar: fixed 3px top bar using scroll event, aria-hidden, reduced-motion support
+- ArticleHeader: cover image (16:9 aspect-ratio), category badge, tag links, title (--font-serif), subtitle (italic), byline with author/date/readTime
+- MDXContent: prose styles for Newsreader 18px 1.75lh, max 70ch; `:global()` selectors for dangerouslySetInnerHTML content; Shiki code blocks (overflow-x scroll), blockquotes, callouts (info/warning/danger/success), tables (scrollable), figure+figcaption, footnotes
+- RecommendationSection: 3 posts same category, card grid layout
+- NewsletterCard: client component, double opt-in flow, privacy checkbox (required), success/error states
+- CommentSystemPlaceholder: section with dashed border placeholder
+- Admin API: `/api/blog/posts/[slug]` — GET by slug, increments view count, renders MDX via renderMDX, returns recommendations
+- Admin API: `/api/blog/newsletter` — POST subscribe (new/pending/unsubscribed cases), 48h UUID token, sends confirmation email
+- Admin API: `/api/blog/newsletter/confirm` — GET validates token, marks active, clears token
+- Blog API: `/api/newsletter` — proxy to admin
+- Blog page: `/newsletter/confirm` — client page with Suspense for useSearchParams, calls admin confirm API
+- DB migration 004_newsletter: newsletter_subscribers table (id, email, status, token, token_expires, unsubscribe_token, confirmed_at)
+- SEO: full Open Graph article metadata, JSON-LD Article schema, hreflang alternates when translation_link set
+- generateStaticParams returns all published slugs (fails gracefully to empty), dynamicParams=true for on-demand generation
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/lib/email.ts; +api/blog/posts/[slug]/route.ts; +api/blog/newsletter/route.ts; +api/blog/newsletter/confirm/route.ts; apps/blog/src/lib/api.ts; +api/newsletter/route.ts; +components/FloatingProgressBar.{tsx,module.css}; +ArticleHeader.{tsx,module.css}; +MDXContent.{tsx,module.css}; +RecommendationSection.{tsx,module.css}; +NewsletterCard.{tsx,module.css}; +CommentSystemPlaceholder.{tsx,module.css}; +app/blog/[slug]/page.{tsx,module.css}; +app/newsletter/confirm/page.{tsx,module.css}
+- **Learnings for future iterations:**
+  - Admin `renderMDX` is called inside the `/api/blog/posts/[slug]` route (Node.js) — blog receives pre-rendered HTML and uses dangerouslySetInnerHTML; no shiki needed in blog
+  - CSS Module `:global()` selectors are essential for styling dangerouslySetInnerHTML content — they work correctly with Next.js CSS Modules
+  - Newsletter confirm page uses `useSearchParams()` so it needs `'use client'` + Suspense wrapper; moved inner logic to separate `ConfirmContent` component
+  - `generateStaticParams` should wrap the fetch in try/catch returning `[]` on failure — otherwise build fails if admin is down
+  - `dynamicParams = true` (default) allows new post slugs to be served on demand without rebuild
+  - `NEXT_PUBLIC_ADMIN_URL` is needed for client-side newsletter confirm fetch; `ADMIN_URL` (without PUBLIC) is server-side only
 ---

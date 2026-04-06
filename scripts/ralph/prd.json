@@ -81,7 +81,7 @@
       "priority": 9,
       "version": "v0.1",
       "prd": "PRD-02",
-      "passes": false,
+      "passes": true,
       "description": "Build the SSG post page (/blog/[slug]). Implement FloatingProgressBar (2-3px, --accent, scroll-based, aria-hidden), ArticleHeader (cover image, category badge, tags, title, subtitle, author+date+readTime), MDXContent (Newsreader, 18px, 1.75 line-height, max 70ch, Shiki highlighting, scroll tables, styled blockquotes, callouts, footnotes), RecommendationSection (3 posts same category), NewsletterCard (double opt-in, privacy checkbox), CommentSystem placeholder. SEO: full Open Graph, JSON-LD Article, canonical, hreflang."
     },
     {
