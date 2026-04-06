@@ -90,7 +90,7 @@
       "priority": 10,
       "version": "v0.1",
       "prd": "PRD-03",
-      "passes": false,
+      "passes": true,
       "description": "Implement GET /api/v1/posts (pagination, category/tag/lang/sort filters), GET /api/v1/posts/:slug (full content as sanitized HTML), GET /api/v1/categories, GET /api/v1/tags. Apply rate limiting: 60 req/min per IP using Redis sliding window. Include X-RateLimit-* headers in all responses. Return 404 for private posts (not 403). Security headers: CSP, nosniff, DENY, HSTS, Cache-Control. CORS: GET+OPTIONS, any origin. OpenAPI 3.0 docs at /api/v1/docs."
     },
     {

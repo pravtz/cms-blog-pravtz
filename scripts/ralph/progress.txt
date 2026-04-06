@@ -13,6 +13,10 @@
 - Unified pipeline packages available as transitive deps (via react-markdown): unified, remark-parse, remark-gfm, remark-rehype, hast-util-to-html. Import them with dynamic `await import()` in server utilities.
 - sanitize-html is installed in admin. Import as `import sanitizeHtml from 'sanitize-html'`.
 
+- v1 API: all routes in `apps/admin/src/app/api/v1/` use `applyRateLimit()` + `handleOptions()` from `lib/v1-helpers.ts`. Rate limiter is in `lib/rate-limit.ts` (Redis sliding window, fail-open). Redis client is in `lib/redis.ts` (lazy init, fail-open on error).
+- v1 API security headers are set in `buildV1Headers()` in `lib/v1-helpers.ts` — CSP, nosniff, DENY, HSTS, Cache-Control, CORS, X-RateLimit-*.
+- OpenAPI spec is served at `/api/v1/docs?format=json`; Swagger UI HTML at `/api/v1/docs`.
+
 - Monorepo: npm workspaces + Turborepo. Run workspace commands with `npm run <cmd> --workspace=@nexus/<app>`.
 - DB layer lives in `apps/admin/src/lib/db.ts` — `getDb()` returns a singleton better-sqlite3 instance with WAL mode.
 - Migrations are run in `runMigrations()` inside `db.ts`; always use `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` patterns.
@@ -208,4 +212,24 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `generateStaticParams` should wrap the fetch in try/catch returning `[]` on failure — otherwise build fails if admin is down
   - `dynamicParams = true` (default) allows new post slugs to be served on demand without rebuild
   - `NEXT_PUBLIC_ADMIN_URL` is needed for client-side newsletter confirm fetch; `ADMIN_URL` (without PUBLIC) is server-side only
+---
+
+## 2026-04-06 - US-10
+- Implemented Public REST API v1 at `apps/admin/src/app/api/v1/`
+- `GET /api/v1/posts`: pagination (page/limit up to 50), category/tag/lang/sort filters, JSON response with `data[]` + `meta` pagination object
+- `GET /api/v1/posts/:slug`: full post with `content_html` (server-rendered MDX), tags, translations array; 404 for private/non-published posts
+- `GET /api/v1/categories`: all categories with `post_count` of public published posts
+- `GET /api/v1/tags`: all tags with `post_count` of public published posts
+- Rate limiting: Redis sliding window via ioredis; 60 req/min per IP; `X-RateLimit-Limit/Remaining/Reset` headers on all responses; 429 on exceed; fails open if Redis is down
+- Security headers on all responses: `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`, `Cache-Control`
+- CORS: `Access-Control-Allow-Origin: *`, `GET, OPTIONS`; OPTIONS preflight returns 204
+- OpenAPI 3.0 JSON spec at `/api/v1/docs?format=json`; Swagger UI HTML at `/api/v1/docs`
+- New lib files: `lib/redis.ts` (ioredis lazy client, fail-open), `lib/rate-limit.ts` (sliding window), `lib/v1-helpers.ts` (shared headers, rate-limit wrapper, OPTIONS handler)
+- Files changed: apps/admin/package.json, package-lock.json; +apps/admin/src/lib/redis.ts; +apps/admin/src/lib/rate-limit.ts; +apps/admin/src/lib/v1-helpers.ts; +apps/admin/src/app/api/v1/posts/route.ts; +apps/admin/src/app/api/v1/posts/[slug]/route.ts; +apps/admin/src/app/api/v1/categories/route.ts; +apps/admin/src/app/api/v1/tags/route.ts; +apps/admin/src/app/api/v1/docs/route.ts
+- **Learnings for future iterations:**
+  - ioredis: use `lazyConnect: true` + `enableOfflineQueue: false` + `maxRetriesPerRequest: 1` so it doesn't hang on connection failure
+  - Check `redis.status === 'wait'` before pipeline exec — needed with lazyConnect to trigger the connection
+  - v1 API routes all return `{ data: ... }` top-level key (not flat); list routes also include `{ meta: { page, limit, total, ... } }`
+  - Private posts return 404 (not 403) per spec — visibility check uses `= 'public'` not `!= 'iPrivate'`
+  - OpenAPI spec is built dynamically so `BASE_URL` can come from env; Swagger UI loads from unpkg CDN
 ---
