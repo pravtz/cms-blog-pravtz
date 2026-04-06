@@ -4,12 +4,18 @@ const ADMIN_URL = process.env.ADMIN_URL ?? 'http://localhost:3001'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const page = searchParams.get('page') ?? '1'
-  const limit = searchParams.get('limit') ?? '12'
+
+  // Forward all supported params to admin
+  const forwardParams = new URLSearchParams()
+  const allowed = ['page', 'limit', 'q', 'category', 'tag', 'year', 'month']
+  for (const key of allowed) {
+    const val = searchParams.get(key)
+    if (val) forwardParams.set(key, val)
+  }
 
   try {
     const res = await fetch(
-      `${ADMIN_URL}/api/blog/posts?page=${page}&limit=${limit}`,
+      `${ADMIN_URL}/api/blog/posts?${forwardParams.toString()}`,
       { next: { revalidate: 60 } }
     )
     if (!res.ok) {

@@ -1,0 +1,22 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.searchRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.results {
+  min-width: 0;
+}

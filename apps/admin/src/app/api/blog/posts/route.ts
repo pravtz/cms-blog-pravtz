@@ -10,7 +10,47 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '12', 10)))
   const offset = (page - 1) * limit
 
+  const q = searchParams.get('q')?.trim() || null
+  const categorySlug = searchParams.get('category')?.trim() || null
+  const tagSlug = searchParams.get('tag')?.trim() || null
+  const year = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : null
+  const month = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) : null
+
   const db = getDb()
+
+  const conditions: string[] = [
+    "p.status = 'published'",
+    "p.visibility != 'iPrivate'",
+  ]
+  const params: (string | number)[] = []
+
+  if (q) {
+    conditions.push("(p.title LIKE ? OR p.excerpt LIKE ? OR p.seo_description LIKE ?)")
+    const pattern = `%${q}%`
+    params.push(pattern, pattern, pattern)
+  }
+
+  if (categorySlug) {
+    conditions.push("c.slug = ?")
+    params.push(categorySlug)
+  }
+
+  if (tagSlug) {
+    conditions.push("EXISTS (SELECT 1 FROM post_tags pt2 JOIN tags t2 ON t2.id = pt2.tag_id WHERE pt2.post_id = p.id AND t2.slug = ?)")
+    params.push(tagSlug)
+  }
+
+  if (year) {
+    conditions.push("strftime('%Y', COALESCE(p.publish_date, p.created_at)) = ?")
+    params.push(String(year))
+  }
+
+  if (month && year) {
+    conditions.push("strftime('%m', COALESCE(p.publish_date, p.created_at)) = ?")
+    params.push(String(month).padStart(2, '0'))
+  }
+
+  const where = conditions.join(' AND ')
 
   const posts = db
     .prepare(`
@@ -24,19 +64,19 @@ export async function GET(request: NextRequest) {
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.status = 'published'
-        AND p.visibility != 'iPrivate'
+      WHERE ${where}
       ORDER BY p.views DESC, p.publish_date DESC, p.created_at DESC
       LIMIT ? OFFSET ?
     `)
-    .all(limit, offset)
+    .all(...params, limit, offset)
 
   const { total } = db
     .prepare(`
-      SELECT COUNT(*) AS total FROM posts
-      WHERE status = 'published' AND visibility != 'iPrivate'
+      SELECT COUNT(*) AS total FROM posts p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE ${where}
     `)
-    .get() as { total: number }
+    .get(...params) as { total: number }
 
   // Attach tags to each post
   const postIds = (posts as Array<{ id: string }>).map((p) => p.id)
