@@ -1,4 +1,7 @@
 ## Codebase Patterns
+- Blog `PostGrid.tsx` is a `'use client'` component; receives `initialPosts` + `total` from SSG page; LoadMore fetches from blog's own `/api/posts` route (which proxies to admin's `/api/blog/posts`).
+- Blog's `next.config.js` uses `images.remotePatterns` with `{ protocol: 'https'/'http', hostname: '**' }` to allow any remote cover image.
+- Blog home page uses `export const revalidate = 60` (ISR) for automatic page refresh.
 - `lib/mdx.ts` exports `sanitizeMDX(content)` (sync, server-side sanitization before DB store) and `renderMDX(content)` (async, unified pipeline → Shiki → HTML, for blog rendering).
 - Shiki v4 is installed. Server-side: `import { codeToHtml } from 'shiki'`. Client-side (browser): `import('shiki/bundle/web')` via dynamic import inside useEffect.
 - `hast-util-to-html` is available as a transitive dep (from react-markdown). Use `processor.parse()` + `await processor.run()` to get the hast tree, then `toHtml(hast)` — do NOT use `processor.process()` without rehype-stringify.
@@ -134,4 +137,21 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - For components with required props, add `args` to meta (even placeholder values) so TypeScript is satisfied when all stories use `render()`
   - `'use client'` components (Modal, Toast) should be wrapped in interactive demo components in stories, not rendered directly via args
   - `Card` doesn't spread HTML attributes so `style` prop must be avoided; wrap in a plain `<div>` for layout purposes in stories
+---
+
+## 2026-04-06 - US-07
+- Built SSG public blog home page at `/` with ISR (revalidate: 60s)
+- HeroSection: featured post (most-viewed), 16:9 cover image with gradient overlay, text-hero title, CTA button
+- BioCard: sticky sidebar on desktop (position: sticky, top: 2rem), horizontal below hero on tablet/mobile
+- PostGrid: mosaic layout (first post spans 2/3 width featured, one regular beside it, then 3-col grid for remaining); LoadMoreButton fetches page 2+ from `/api/posts` blog route
+- SkeletonCard/SkeletonGrid: shimmer animation used during LoadMore loading state
+- Blog-side `/api/posts` route added to proxy admin's `/api/blog/posts` for client-side LoadMore
+- SEO: generateMetadata() with title, description, og:image from owner avatar; JSON-LD WebSite + Person schema; canonical URL
+- iPrivate posts excluded at API level (admin's `/api/blog/posts` filters `visibility != 'iPrivate'`)
+- Files changed: apps/blog/src/app/page.tsx, page.module.css, api/posts/route.ts, next.config.js; apps/blog/src/components/PostGrid.tsx, PostGrid.module.css; also committed all previously untracked blog components (HeroSection, BioCard, PostCard, SkeletonCard + CSS Modules, lib/api.ts) and admin blog API routes (blog/owner, blog/posts)
+- **Learnings for future iterations:**
+  - Blog components use ADMIN_URL (server-side env) for SSR fetches; client-side LoadMore must go through blog's own `/api/*` proxy routes
+  - next.config.js `images.remotePatterns` with `hostname: '**'` allows any origin for cover_image — needed since image URLs are user-supplied
+  - `PostGrid` mosaic: `grid-template-columns: 2fr 1fr` for featured row, then `repeat(3, 1fr)` for regular grid
+  - layout.tsx `metadata.metadataBase` must be set for og:image URL resolution to work correctly in generateMetadata
 ---

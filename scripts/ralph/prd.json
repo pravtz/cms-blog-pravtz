@@ -63,7 +63,7 @@
       "priority": 7,
       "version": "v0.1",
       "prd": "PRD-02",
-      "passes": false,
+      "passes": true,
       "description": "Build the SSG public blog Home (/). Implement HeroSection (featured post, 16:9 cover, text-hero title, CTA button), BioCard (owner avatar, name, bio, social links — sticky on desktop, below hero on mobile), PostGrid (top 12 posts by views, mosaic layout, skeleton screens, LoadMoreButton). SEO: title tag, meta description, og:image, JSON-LD WebSite+Person, canonical. No iPrivate posts in generated HTML."
     },
     {
