@@ -300,3 +300,26 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - When US descriptions overlap (RBAC matrix + group CRUD in consecutive stories), the implementation may land in the earlier commit — check git log before re-implementing
   - All typecheck/lint/test checks pass (105 tests, 0 TS errors, 0 ESLint warnings)
 ---
+
+## 2026-04-08 - US-15
+- Created `apps/admin/src/lib/audit.ts` with `logAudit()` helper — non-blocking, fail-silent
+- Added `007_audit_log` DB migration: `audit_logs` table (id, actor_id, actor_email, action, target_id, target_type, metadata JSON, ip_address, user_agent, created_at) with indexes on action, actor_id, created_at
+- Instrumented sensitive routes:
+  - `api/auth/login` — login.success, login.failure (with reason), login.blocked
+  - `api/admin/users/[id]/approve` — user.approved
+  - `api/admin/users/[id]/reject` — user.rejected
+  - `api/groups/route.ts` — group.created
+  - `api/groups/[id]/route.ts` — group.updated, group.deleted
+  - `api/groups/[id]/permissions` — rbac.group_permissions_changed
+  - `api/posts/route.ts` — post.created, post.published (when status=published)
+  - `api/posts/[id]/route.ts` — post.edited, post.published, post.deleted
+  - `api/setup/complete` — setup.completed
+- Created `api/admin/audit-log/route.ts` — Owner-only GET endpoint with filters (action, actorEmail, targetType, from, to) + pagination (50/page)
+- Created `app/admin/audit/page.tsx` — filterable log viewer UI (client component, expandable metadata rows, color-coded action badges, pagination)
+- Files changed: 13 files (2 new, 11 modified + new page and API route)
+- **Learnings for future iterations:**
+  - `logAudit()` is synchronous (better-sqlite3) and wrapped in try/catch — never throws, safe to call anywhere without await
+  - Always pass `ipAddress` from `x-forwarded-for` header (trim first IP) with fallback to `x-real-ip`
+  - `metadata` is stored as JSON string in SQLite and parsed back on read in the API route
+  - Audit action for post.published is set whenever `data.status === 'published'` in both create and update flows
+---

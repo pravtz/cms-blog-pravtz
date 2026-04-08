@@ -135,7 +135,7 @@
       "priority": 15,
       "version": "v0.2",
       "prd": "PRD-04",
-      "passes": false,
+      "passes": true,
       "description": "Log all sensitive actions: login (success+failure), user approval/rejection, role/permission changes, post publish/edit/delete, settings changes, API key insert/remove, RBAC changes. Fields: actorId, actorEmail, action, targetId, targetType, metadata (before/after JSON), ipAddress, userAgent, timestamp. Audit trail UI (Owner only): filterable log viewer."
     },
     {
