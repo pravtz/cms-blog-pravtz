@@ -5,28 +5,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
 import { getDb } from '@/lib/db'
 import { sanitizeMDX } from '@/lib/mdx'
+import { slugify, uniqueSlug, calculateReadingTime } from '@/lib/utils'
+import { canCreatePost } from '@/lib/rbac'
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 120)
-}
-
-function uniqueSlug(base: string): string {
-  const suffix = Date.now().toString(36)
-  return base ? `${base}-${suffix}` : suffix
-}
-
-function calcReadingTime(content: string): number {
-  const words = content.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1, Math.round(words / 200))
-}
 
 const PostSchema = z.object({
   title: z.string().max(500).optional().default(''),
@@ -90,6 +72,10 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
 
+  if (!canCreatePost(auth.payload.role)) {
+    return NextResponse.json({ error: 'Insufficient permissions to create posts.' }, { status: 403 })
+  }
+
   const body = await request.json()
   const parsed = PostSchema.safeParse(body)
   if (!parsed.success) {
@@ -104,7 +90,7 @@ export async function POST(request: NextRequest) {
   const slug = uniqueSlug(baseSlug)
   // Sanitize content before storing to strip any dangerous HTML/XSS vectors
   const safeContent = sanitizeMDX(data.content)
-  const readingTime = calcReadingTime(safeContent)
+  const readingTime = calculateReadingTime(safeContent)
 
   const insertPost = db.prepare(`
     INSERT INTO posts (
