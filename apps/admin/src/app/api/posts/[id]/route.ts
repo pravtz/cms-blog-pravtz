@@ -6,6 +6,7 @@ import { requireAuth } from '@/lib/auth-middleware'
 import { getDb } from '@/lib/db'
 import { sanitizeMDX } from '@/lib/mdx'
 import { z } from 'zod'
+import { logAudit } from '@/lib/audit'
 
 function slugify(text: string): string {
   return text
@@ -147,6 +148,18 @@ export async function PUT(
     }
   })()
 
+  const auditAction = data.status === 'published' ? 'post.published' : 'post.edited'
+  logAudit({
+    action: auditAction,
+    actorId: payload.sub,
+    actorEmail: payload.email,
+    targetId: params.id,
+    targetType: 'post',
+    metadata: { title: data.title ?? existing.title, status: data.status },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
+
   return NextResponse.json({ ok: true })
 }
 
@@ -172,5 +185,16 @@ export async function DELETE(
   }
 
   db.prepare('DELETE FROM posts WHERE id = ?').run(params.id)
+
+  logAudit({
+    action: 'post.deleted',
+    actorId: payload.sub,
+    actorEmail: payload.email,
+    targetId: params.id,
+    targetType: 'post',
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
+
   return NextResponse.json({ ok: true })
 }

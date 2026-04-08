@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requireRole } from '@/lib/auth-middleware'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -104,6 +105,18 @@ export async function PUT(
   }
 
   const updated = db.prepare('SELECT * FROM groups WHERE id = ?').get(params.id)
+
+  logAudit({
+    action: 'group.updated',
+    actorId: auth.payload.sub,
+    actorEmail: auth.payload.email,
+    targetId: params.id,
+    targetType: 'group',
+    metadata: { name: name ?? group.name },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
+
   return NextResponse.json({ group: updated })
 }
 
@@ -124,5 +137,17 @@ export async function DELETE(
   }
 
   db.prepare('DELETE FROM groups WHERE id = ?').run(params.id)
+
+  logAudit({
+    action: 'group.deleted',
+    actorId: auth.payload.sub,
+    actorEmail: auth.payload.email,
+    targetId: params.id,
+    targetType: 'group',
+    metadata: { name: group.name },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
+
   return NextResponse.json({ success: true })
 }

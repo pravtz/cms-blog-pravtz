@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { requireRole } from '@/lib/auth-middleware'
 import { getGroupPermissions, ALL_RESOURCES, ALL_OPERATIONS } from '@/lib/rbac'
 import type { Resource, Operation } from '@/lib/rbac'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,5 +78,17 @@ export async function PUT(
   updatePermissions()
 
   const updated = getGroupPermissions(db, params.id)
+
+  logAudit({
+    action: 'rbac.group_permissions_changed',
+    actorId: auth.payload.sub,
+    actorEmail: auth.payload.email,
+    targetId: params.id,
+    targetType: 'group',
+    metadata: { groupName: group.name },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
+
   return NextResponse.json({ group, permissions: updated })
 }

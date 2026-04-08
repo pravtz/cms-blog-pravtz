@@ -9,6 +9,7 @@ import { slugify, uniqueSlug, calculateReadingTime } from '@/lib/utils'
 import { canCreatePost } from '@/lib/rbac'
 import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
+import { logAudit } from '@/lib/audit'
 
 const PostSchema = z.object({
   title: z.string().max(500).optional().default(''),
@@ -130,6 +131,17 @@ export async function POST(request: NextRequest) {
       insertTag.run(id, tagId)
     }
   })()
+
+  logAudit({
+    action: data.status === 'published' ? 'post.published' : 'post.created',
+    actorId: auth.payload.sub,
+    actorEmail: auth.payload.email,
+    targetId: id,
+    targetType: 'post',
+    metadata: { title: data.title, status: data.status, slug },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
 
   return NextResponse.json({ post: { id, slug } }, { status: 201 })
 }

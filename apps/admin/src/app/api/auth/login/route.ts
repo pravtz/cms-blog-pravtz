@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getDb } from '@/lib/db'
 import { verifyPassword, generateToken, generateRefreshToken } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,6 +80,11 @@ export async function POST(request: NextRequest) {
   const db = getDb()
 
   if (isIPBlocked(db, ip)) {
+    logAudit({
+      action: 'login.blocked',
+      ipAddress: ip,
+      userAgent: request.headers.get('user-agent'),
+    })
     return NextResponse.json(
       { error: 'Too many failed attempts. Please try again in 30 minutes.' },
       { status: 429 }
@@ -105,12 +111,27 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     recordAttempt(db, ip, email, false)
+    logAudit({
+      action: 'login.failure',
+      actorEmail: email,
+      metadata: { reason: 'user_not_found' },
+      ipAddress: ip,
+      userAgent: request.headers.get('user-agent'),
+    })
     return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
   }
 
   const passwordValid = await verifyPassword(password, user.password_hash)
   if (!passwordValid) {
     recordAttempt(db, ip, email, false)
+    logAudit({
+      action: 'login.failure',
+      actorId: user.id,
+      actorEmail: email,
+      metadata: { reason: 'wrong_password' },
+      ipAddress: ip,
+      userAgent: request.headers.get('user-agent'),
+    })
     return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
   }
 
@@ -127,6 +148,13 @@ export async function POST(request: NextRequest) {
   }
 
   recordAttempt(db, ip, email, true)
+  logAudit({
+    action: 'login.success',
+    actorId: user.id,
+    actorEmail: user.email,
+    ipAddress: ip,
+    userAgent: request.headers.get('user-agent'),
+  })
 
   const tokenPayload = { sub: user.id, email: user.email, role: user.role }
   const accessToken = generateToken(tokenPayload)

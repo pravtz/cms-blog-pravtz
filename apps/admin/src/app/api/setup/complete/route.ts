@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { getDb, ownerExists, setSetting } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -80,6 +81,13 @@ export async function POST(request: NextRequest) {
         ).run(key, value)
       }
     })()
+
+    logAudit({
+      action: 'setup.completed',
+      metadata: { blogName: data.blogName, blogUrl: data.blogUrl },
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+      userAgent: request.headers.get('user-agent'),
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

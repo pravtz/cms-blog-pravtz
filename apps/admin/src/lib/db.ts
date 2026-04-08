@@ -187,6 +187,24 @@ function runMigrations(database: Database.Database): void {
         ('group-owner', 'owner', 'System owner group — immutable', 1),
         ('group-default', 'default', 'Default group for all users — immutable', 1);
     `,
+    '007_audit_log': `
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        actor_id TEXT,
+        actor_email TEXT,
+        action TEXT NOT NULL,
+        target_id TEXT,
+        target_type TEXT,
+        metadata TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+    `,
   }
 
   const applied = database

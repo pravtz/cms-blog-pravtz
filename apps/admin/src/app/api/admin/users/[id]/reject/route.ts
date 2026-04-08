@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requireRole } from '@/lib/auth-middleware'
 import { sendRejectionNotification } from '@/lib/email'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,6 +45,17 @@ export async function POST(
   ).run(id)
 
   await sendRejectionNotification(user.email, user.name)
+
+  logAudit({
+    action: 'user.rejected',
+    actorId: auth.payload.sub,
+    actorEmail: auth.payload.email,
+    targetId: user.id,
+    targetType: 'user',
+    metadata: { targetEmail: user.email, targetName: user.name },
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+    userAgent: request.headers.get('user-agent'),
+  })
 
   return NextResponse.json({ message: 'User rejected.' })
 }
