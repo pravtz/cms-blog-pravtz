@@ -108,7 +108,7 @@
       "priority": 12,
       "version": "v0.2",
       "prd": "PRD-04",
-      "passes": false,
+      "passes": true,
       "description": "Implement public registration form (name, nickname, email, phone, password with strength indicator). Status machine: pending_email → pending_approval → active → suspended. Email confirmation (24h token, resend option). Admin notification on new pending user. Approval/rejection flow with email feedback. Login blocked until status=active with appropriate error messages per status. First login: category interest selection (min 1)."
     },
     {

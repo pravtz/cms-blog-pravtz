@@ -251,3 +251,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - SQLite datetime format vs ISO format: always store test timestamps with `.toISOString()` not `datetime('now', ...)` when the route compares against JS `Date.toISOString()` strings
   - `ß` (U+00DF) is not a letter with a combining diacritic — NFD does not decompose it; slugify produces `-` for it
 ---
+
+## 2026-04-08 - US-12
+- Added `nickname` (optional), `phone` (optional), and `first_login_done` fields to users table via migration `005_user_profile`
+- Added `user_interests` junction table (user_id × category_id) for tracking category interests
+- Updated `POST /api/auth/register` to accept and store `nickname` and `phone`
+- Updated registration form with nickname and phone fields (both optional, labeled accordingly)
+- Updated `POST /api/auth/login` to return `firstLogin: true` when `first_login_done = 0` and role != 'owner'
+- Created `GET/POST /api/auth/interests` — GET returns available categories + user's selections; POST replaces interests and marks `first_login_done = 1`
+- Created `/admin/interests` page with chip-based category selector (min 1 required, skip option); falls back to default interest topics if no categories exist yet
+- Updated `LoginForm` to redirect to `/admin/interests` on first login, `/admin/dashboard` thereafter
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/app/api/auth/register/route.ts, apps/admin/src/app/api/auth/login/route.ts, +api/auth/interests/route.ts, apps/admin/src/app/admin/register/register-form.tsx, register.module.css, apps/admin/src/app/admin/login/login-form.tsx, +admin/interests/page.tsx, interests-form.tsx, interests.module.css
+- **Learnings for future iterations:**
+  - SQLite `ALTER TABLE ADD COLUMN` works fine for nullable/default columns; new columns are added via a separate migration
+  - The `user_interests` table uses `ON DELETE CASCADE` on both FKs so deleting a user or category auto-cleans interests
+  - First-login flag (`first_login_done`) is not set for the owner role — owner always goes straight to dashboard
+  - Interests page falls back to a hardcoded default list when no categories exist yet (common on new installs)
+---
