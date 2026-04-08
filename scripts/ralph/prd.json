@@ -126,7 +126,7 @@
       "priority": 14,
       "version": "v0.2",
       "prd": "PRD-04",
-      "passes": false,
+      "passes": true,
       "description": "Implement CRUD for custom groups (name, description, members multi-select). Show default groups (owner, default) with 'Default' badge, no delete/rename. Each group has its own Access Matrix. Users can belong to multiple groups simultaneously. CRUD UI: list with member count, create/edit modal, member management, permission configuration."
     },
     {

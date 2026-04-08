@@ -287,3 +287,16 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `resolvePermission()` checks individual overrides first, then any group membership, then the `group-default` system group, then static role matrix — this order must be preserved
   - Group system integrity: `is_system=1` groups (owner, default) cannot be renamed or deleted; the owner group cannot have its permissions edited (owner bypasses RBAC entirely)
 ---
+
+## 2026-04-08 - US-14
+- Group management CRUD was fully implemented as part of US-13 commit
+- `/admin/groups` list: member count column, create modal (name + description), delete confirmation, Default badge for system groups (no delete action shown)
+- `/admin/groups/[id]` detail: inline name/description edit (blocked for system groups), Access Matrix with save, member multi-select checkboxes with Save Members button
+- API: POST/GET /api/groups, GET/PUT/DELETE /api/groups/[id], GET/PUT /api/groups/[id]/permissions
+- Users can belong to multiple groups (group_members junction table)
+- System groups (owner, default) are immutable — no rename or delete allowed
+- Files: already committed in US-13 feat commit
+- **Learnings for future iterations:**
+  - When US descriptions overlap (RBAC matrix + group CRUD in consecutive stories), the implementation may land in the earlier commit — check git log before re-implementing
+  - All typecheck/lint/test checks pass (105 tests, 0 TS errors, 0 ESLint warnings)
+---
