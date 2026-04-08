@@ -1,4 +1,10 @@
 ## Codebase Patterns
+- Test files (`src/__tests__/`) are excluded from `tsconfig.json` — they use top-level `await import()` which requires `target: ES2022` not set in the Next.js tsconfig. Vitest handles ESM natively so type-checking tests separately is fine.
+- Integration tests mock `@/lib/db` with `vi.mock()` returning an in-memory SQLite DB (created via `createTestDb()` in `helpers/db.ts`). Never call `getDb()` directly in test setup.
+- SQLite `datetime('now', ...)` returns `'YYYY-MM-DD HH:MM:SS'` (no T, no timezone). JavaScript's `new Date()` ISO format is `'YYYY-MM-DDTHH:MM:SS.sssZ'`. String comparison between these formats is unreliable (space < 'T' in ASCII). Always insert test timestamps using `new Date(...).toISOString()` to match what the route's `windowStart` comparison expects.
+- Vitest coverage: exclude `db.ts`, `mdx.ts`, `rate-limit.ts` from coverage (require external deps); target files are `auth.ts`, `rbac.ts`, `utils.ts`, `auth-middleware.ts`, `v1-helpers.ts`.
+- The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
+
 - Blog `PostGrid.tsx` is a `'use client'` component; receives `initialPosts` + `total` from SSG page; LoadMore fetches from blog's own `/api/posts` route (which proxies to admin's `/api/blog/posts`).
 - Blog's `next.config.js` uses `images.remotePatterns` with `{ protocol: 'https'/'http', hostname: '**' }` to allow any remote cover image.
 - Blog home page uses `export const revalidate = 60` (ISR) for automatic page refresh.
@@ -232,4 +238,16 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - v1 API routes all return `{ data: ... }` top-level key (not flat); list routes also include `{ meta: { page, limit, total, ... } }`
   - Private posts return 404 (not 403) per spec — visibility check uses `= 'public'` not `!= 'iPrivate'`
   - OpenAPI spec is built dynamically so `BASE_URL` can come from env; Swagger UI loads from unpkg CDN
+---
+
+## 2026-04-08 - US-11
+- Unit tests (Vitest): auth (already existed), RBAC helpers (canPerform/canCreatePost/canManageUsers), utils (slugify/calculateReadingTime/isVisibleTo), auth-middleware (requireAuth/requireRole), v1-helpers (getClientIp/buildV1Headers/handleOptions)
+- Integration tests using NextRequest + in-memory SQLite (mocked getDb): POST /api/auth/login (200/401×2/403×3/429), GET /api/v1/posts (public-only filter, rate-limit headers, pagination, 429), POST /api/posts (201/401/403/XSS sanitization/unique slug), Newsletter (subscribe→pending, confirm→active, expired 400, unknown 400)
+- 105 total tests, 98%+ coverage on targeted lib files (auth.ts=100%, rbac.ts=100%, utils.ts=100%, auth-middleware.ts=94%, v1-helpers.ts=100%)
+- Files changed: apps/admin/src/__tests__/helpers/db.ts, setup.ts, unit/auth.test.ts, unit/rbac.test.ts, unit/utils.test.ts, unit/auth-middleware.test.ts, unit/v1-helpers.test.ts, integration/auth-login.test.ts, integration/v1-posts.test.ts, integration/posts-create.test.ts, integration/newsletter.test.ts; apps/admin/vitest.config.ts, apps/admin/tsconfig.json, apps/admin/src/lib/rbac.ts, apps/admin/src/lib/utils.ts
+- **Learnings for future iterations:**
+  - `vi.mock()` closures capture module-scope variables by reference — assign `testDb = createTestDb()` in `beforeEach` after declaring `let testDb` in scope
+  - Exclude `src/__tests__` from tsconfig.json when using top-level `await import()` in tests; Vitest handles ESM natively
+  - SQLite datetime format vs ISO format: always store test timestamps with `.toISOString()` not `datetime('now', ...)` when the route compares against JS `Date.toISOString()` strings
+  - `ß` (U+00DF) is not a letter with a combining diacritic — NFD does not decompose it; slugify produces `-` for it
 ---

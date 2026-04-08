@@ -99,7 +99,7 @@
       "priority": 11,
       "version": "v0.1",
       "prd": "PRD-11",
-      "passes": false,
+      "passes": true,
       "description": "Write unit tests (Vitest) covering: auth (hashPassword, verifyPassword, generateToken, generateRefreshToken), RBAC helpers, slugify, calculateReadingTime, isVisibleTo. Write integration tests (Supertest + in-memory SQLite) covering: POST /api/auth/login (200/401/403/429, httpOnly cookie), GET /api/v1/posts (public-only filter, rate limit, pagination), POST /api/posts (201/403/401, slug, XSS rejection), Newsletter Double Opt-in (pending → confirm → active, expired token 400). Target 90%+ coverage on auth and RBAC logic."
     },
     {
