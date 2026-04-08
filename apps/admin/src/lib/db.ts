@@ -143,6 +143,50 @@ function runMigrations(database: Database.Database): void {
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
       );
     `,
+    '006_rbac': `
+      CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        is_system INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS group_members (
+        group_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        PRIMARY KEY (group_id, user_id),
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS group_permissions (
+        group_id TEXT NOT NULL,
+        resource TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        allowed INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (group_id, resource, operation),
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS user_permissions (
+        user_id TEXT NOT NULL,
+        resource TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        allowed INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (user_id, resource, operation),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
+
+      -- Seed system groups
+      INSERT OR IGNORE INTO groups (id, name, description, is_system) VALUES
+        ('group-owner', 'owner', 'System owner group — immutable', 1),
+        ('group-default', 'default', 'Default group for all users — immutable', 1);
+    `,
   }
 
   const applied = database
