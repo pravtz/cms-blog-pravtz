@@ -29,7 +29,9 @@ const strengthConfig: Record<PasswordStrength, { label: string; color: string; w
 
 export default function RegisterForm() {
   const [name, setName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -47,7 +49,13 @@ export default function RegisterForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          nickname: nickname || undefined,
+          email,
+          phone: phone || undefined,
+          password,
+        }),
       })
 
       if (res.ok || res.status === 201 || res.status === 200) {
@@ -97,7 +105,7 @@ export default function RegisterForm() {
         <form onSubmit={handleSubmit} noValidate>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="name">
-              Full name
+              Full name <span aria-hidden="true">*</span>
             </label>
             <input
               id="name"
@@ -113,8 +121,24 @@ export default function RegisterForm() {
           </div>
 
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="nickname">
+              Nickname <span className={styles.optional}>(optional)</span>
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className={styles.input}
+              autoComplete="nickname"
+              minLength={2}
+              maxLength={50}
+            />
+          </div>
+
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="email">
-              Email
+              Email <span aria-hidden="true">*</span>
             </label>
             <input
               id="email"
@@ -128,8 +152,23 @@ export default function RegisterForm() {
           </div>
 
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="phone">
+              Phone <span className={styles.optional}>(optional)</span>
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={styles.input}
+              autoComplete="tel"
+              maxLength={30}
+            />
+          </div>
+
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="password">
-              Password
+              Password <span aria-hidden="true">*</span>
             </label>
             <input
               id="password"

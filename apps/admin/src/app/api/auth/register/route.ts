@@ -10,7 +10,9 @@ export const dynamic = 'force-dynamic'
 
 const RegisterSchema = z.object({
   name: z.string().min(2).max(100),
+  nickname: z.string().min(2).max(50).optional(),
   email: z.string().email(),
+  phone: z.string().max(30).optional(),
   password: z.string().min(8).max(128),
 })
 
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { name, email, password } = parsed.data
+  const { name, nickname, email, phone, password } = parsed.data
   const db = getDb()
 
   const existing = db
@@ -58,9 +60,9 @@ export async function POST(request: NextRequest) {
   const userId = randomUUID()
 
   db.prepare(
-    `INSERT INTO users (id, name, email, password_hash, role, status, email_token, email_token_expires)
-     VALUES (?, ?, ?, ?, 'default', 'pending_email', ?, ?)`
-  ).run(userId, name, email, passwordHash, emailToken, tokenExpires)
+    `INSERT INTO users (id, name, nickname, email, phone, password_hash, role, status, email_token, email_token_expires)
+     VALUES (?, ?, ?, ?, ?, ?, 'default', 'pending_email', ?, ?)`
+  ).run(userId, name, nickname ?? null, email, phone ?? null, passwordHash, emailToken, tokenExpires)
 
   await sendEmailConfirmation(email, name, emailToken)
 

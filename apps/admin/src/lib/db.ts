@@ -130,6 +130,19 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_newsletter_token ON newsletter_subscribers(token);
       CREATE INDEX IF NOT EXISTS idx_newsletter_unsubscribe ON newsletter_subscribers(unsubscribe_token);
     `,
+    '005_user_profile': `
+      ALTER TABLE users ADD COLUMN nickname TEXT;
+      ALTER TABLE users ADD COLUMN phone TEXT;
+      ALTER TABLE users ADD COLUMN first_login_done INTEGER NOT NULL DEFAULT 0;
+
+      CREATE TABLE IF NOT EXISTS user_interests (
+        user_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        PRIMARY KEY (user_id, category_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+      );
+    `,
   }
 
   const applied = database

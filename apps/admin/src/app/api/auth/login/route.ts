@@ -22,6 +22,7 @@ interface UserRow {
   password_hash: string
   role: string
   status: string
+  first_login_done: number
 }
 
 function getClientIP(request: NextRequest): string {
@@ -131,9 +132,12 @@ export async function POST(request: NextRequest) {
   const accessToken = generateToken(tokenPayload)
   const refreshToken = generateRefreshToken(tokenPayload)
 
+  const firstLogin = user.first_login_done === 0 && user.role !== 'owner'
+
   const response = NextResponse.json({
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
     accessToken,
+    firstLogin,
   })
 
   response.cookies.set('refreshToken', refreshToken, {

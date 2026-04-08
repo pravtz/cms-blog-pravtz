@@ -25,7 +25,12 @@ export default function LoginForm({ setupComplete }: { setupComplete: boolean })
       })
 
       if (res.ok) {
-        router.push('/admin/dashboard')
+        const json = await res.json()
+        if (json.firstLogin) {
+          router.push('/admin/interests')
+        } else {
+          router.push('/admin/dashboard')
+        }
       } else {
         const json = await res.json()
         setError(json.error ?? 'Login failed. Check your credentials.')

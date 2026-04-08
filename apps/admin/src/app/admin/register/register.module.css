@@ -138,3 +138,9 @@
 .link:hover {
   text-decoration: underline;
 }
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted, #888);
+  font-size: 12px;
+}
