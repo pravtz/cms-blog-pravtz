@@ -1,4 +1,7 @@
 ## Codebase Patterns
+- `useToast()` returns `{ toast, dismiss }` — call `toast({ variant: 'success'|'error'|'warning'|'info', title: '...' })` (not `addToast`, not `type`).
+- `Modal` prop is `open` (not `isOpen`). Other props: `onClose`, `title`, `footer` (ReactNode).
+- Badge variants: `'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'` — no `neutral` variant.
 - Test files (`src/__tests__/`) are excluded from `tsconfig.json` — they use top-level `await import()` which requires `target: ES2022` not set in the Next.js tsconfig. Vitest handles ESM natively so type-checking tests separately is fine.
 - Integration tests mock `@/lib/db` with `vi.mock()` returning an in-memory SQLite DB (created via `createTestDb()` in `helpers/db.ts`). Never call `getDb()` directly in test setup.
 - SQLite `datetime('now', ...)` returns `'YYYY-MM-DD HH:MM:SS'` (no T, no timezone). JavaScript's `new Date()` ISO format is `'YYYY-MM-DDTHH:MM:SS.sssZ'`. String comparison between these formats is unreliable (space < 'T' in ASCII). Always insert test timestamps using `new Date(...).toISOString()` to match what the route's `windowStart` comparison expects.
@@ -267,4 +270,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - The `user_interests` table uses `ON DELETE CASCADE` on both FKs so deleting a user or category auto-cleans interests
   - First-login flag (`first_login_done`) is not set for the owner role — owner always goes straight to dashboard
   - Interests page falls back to a hardcoded default list when no categories exist yet (common on new installs)
+---
+
+## 2026-04-08 - US-13
+- Added DB migration `006_rbac` with `groups`, `group_members`, `group_permissions`, and `user_permissions` tables
+- Seeded system groups `owner` and `default` (is_system=1, immutable) via migration INSERT OR IGNORE
+- Updated `rbac.ts`: added `resolvePermission()` (DB-aware, hierarchy: individual > group > default group > static fallback), `getEffectivePermissions()`, `getGroupPermissions()`, `getUserPermissionOverrides()`, plus `ALL_RESOURCES`, `ALL_OPERATIONS`, `RESOURCE_LABELS`, `OPERATION_LABELS` exports
+- Created API routes: `GET/POST /api/groups`, `GET/PUT/DELETE /api/groups/[id]`, `GET/PUT /api/groups/[id]/permissions`, `GET/PUT /api/users/[id]/permissions`, `GET /api/users/[id]/effective-permissions`
+- Created `PermissionMatrix` component (resource × operation checkbox grid, humanized labels, read-only mode, disabled for owner group)
+- Created `/admin/groups` list page with create/delete modal, member count, Default badge
+- Created `/admin/groups/[id]` detail page with inline name/desc edit, permission matrix save, member multi-select
+- Files changed: `apps/admin/src/lib/db.ts`, `apps/admin/src/lib/rbac.ts`, `apps/admin/src/components/index.ts`, +`PermissionMatrix/`, +`api/groups/`, +`api/users/[id]/permissions/`, +`api/users/[id]/effective-permissions/`, +`admin/groups/`, +`admin/groups/[id]/`
+- **Learnings for future iterations:**
+  - `useToast()` returns `{ toast, dismiss }` — call `toast({ variant, title })` (field is `variant` not `type`, and `title` is required)
+  - `Modal` uses `open` prop (not `isOpen`); `Badge` has no `neutral` variant — use `default`
+  - `resolvePermission()` checks individual overrides first, then any group membership, then the `group-default` system group, then static role matrix — this order must be preserved
+  - Group system integrity: `is_system=1` groups (owner, default) cannot be renamed or deleted; the owner group cannot have its permissions edited (owner bypasses RBAC entirely)
 ---

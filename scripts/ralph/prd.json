@@ -117,7 +117,7 @@
       "priority": 13,
       "version": "v0.2",
       "prd": "PRD-04",
-      "passes": false,
+      "passes": true,
       "description": "Implement full RBAC: resource × operation matrix (posts, comments, users, groups, permissions, tags, categories, images, newsletter, metrics, settings, notifications, AI). Humanized checkbox labels in UI. Per-group and per-user configuration. Individual permission overrides group permission. Permission resolution hierarchy: individual > highest-privilege group > default group. Owner role bypasses all checks. roles owner and default are immutable."
     },
     {
