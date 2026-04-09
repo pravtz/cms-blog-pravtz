@@ -26,6 +26,8 @@ export default function LoginForm({ setupComplete }: { setupComplete: boolean })
 
       if (res.ok) {
         const json = await res.json()
+        localStorage.setItem('accessToken', json.accessToken)
+        localStorage.setItem('currentUser', JSON.stringify(json.user))
         if (json.firstLogin) {
           router.push('/admin/interests')
         } else {
