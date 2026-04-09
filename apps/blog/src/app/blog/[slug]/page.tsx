@@ -7,6 +7,7 @@ import MDXContent from '@/components/MDXContent'
 import RecommendationSection from '@/components/RecommendationSection'
 import NewsletterCard from '@/components/NewsletterCard'
 import CommentSystemPlaceholder from '@/components/CommentSystemPlaceholder'
+import RBACBanner from '@/components/RBACBanner'
 import styles from './page.module.css'
 
 const BLOG_URL = process.env.NEXT_PUBLIC_BLOG_URL ?? 'http://localhost:3000'
@@ -83,6 +84,8 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   }
 }
 
+const RESTRICTED_VISIBILITIES = new Set(['allPrivate', 'groupPrivate', 'listPrivate'])
+
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params
   const [result, owner] = await Promise.all([getPost(slug), getOwner()])
@@ -90,6 +93,7 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!result) notFound()
 
   const { post, recommendations } = result
+  const isRestricted = RESTRICTED_VISIBILITIES.has(post.visibility)
   const blogName = owner?.blogName || 'Nexus Blog'
   const publishDate = post.publish_date || post.created_at
 
@@ -130,18 +134,32 @@ export default async function PostPage({ params }: PostPageProps) {
       <main className={styles.main}>
         <div className={styles.container}>
           <ArticleHeader post={post} />
-          <MDXContent html={post.content_html} />
+          {isRestricted ? (
+            <div className={styles.restrictedContent}>
+              {post.excerpt && (
+                <p className={styles.restrictedExcerpt}>{post.excerpt}</p>
+              )}
+              <div className={styles.blurOverlay} aria-hidden="true" />
+              <RBACBanner
+                visibility={post.visibility as 'allPrivate' | 'groupPrivate' | 'listPrivate'}
+              />
+            </div>
+          ) : (
+            <MDXContent html={post.content_html} />
+          )}
         </div>
 
-        <div className={styles.container}>
-          <RecommendationSection posts={recommendations} />
+        {!isRestricted && (
+          <div className={styles.container}>
+            <RecommendationSection posts={recommendations} />
 
-          <section className={styles.newsletterSection}>
-            <NewsletterCard />
-          </section>
+            <section className={styles.newsletterSection}>
+              <NewsletterCard />
+            </section>
 
-          <CommentSystemPlaceholder />
-        </div>
+            <CommentSystemPlaceholder />
+          </div>
+        )}
       </main>
     </>
   )

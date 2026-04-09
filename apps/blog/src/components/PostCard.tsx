@@ -8,10 +8,13 @@ interface PostCardProps {
   featured?: boolean
 }
 
+const PRIVATE_VISIBILITIES = new Set(['allPrivate', 'groupPrivate', 'listPrivate', 'iPrivate'])
+
 export default function PostCard({ post, featured = false }: PostCardProps) {
   const displayTitle = post.seo_title || post.title
   const displayExcerpt = post.excerpt || post.seo_description
   const publishDate = post.publish_date || post.created_at
+  const isPrivate = PRIVATE_VISIBILITIES.has(post.visibility)
 
   return (
     <article className={`${styles.card} ${featured ? styles.featured : ''}`}>
@@ -45,6 +48,15 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
           )}
           {post.tags.length > 0 && (
             <span className={styles.tag}>{post.tags[0].name}</span>
+          )}
+          {isPrivate && (
+            <span className={styles.lockBadge} title="Members-only content" aria-label="Members-only content">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Members only
+            </span>
           )}
         </div>
 

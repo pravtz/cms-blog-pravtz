@@ -21,6 +21,8 @@ const PostSchema = z.object({
   language: z.string().optional().default('pt-BR'),
   category_id: z.string().uuid().optional().nullable(),
   tag_ids: z.array(z.string().uuid()).optional().default([]),
+  group_ids: z.array(z.string()).optional().default([]),
+  list_ids: z.array(z.string().uuid()).optional().default([]),
   cover_image: z.string().optional().nullable(),
   seo_title: z.string().max(200).optional().nullable(),
   seo_description: z.string().max(500).optional().nullable(),
@@ -106,6 +108,12 @@ export async function POST(request: NextRequest) {
   const insertTag = db.prepare(
     'INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)'
   )
+  const insertGroupAccess = db.prepare(
+    'INSERT OR IGNORE INTO post_group_access (post_id, group_id) VALUES (?, ?)'
+  )
+  const insertListAccess = db.prepare(
+    'INSERT OR IGNORE INTO post_list_access (post_id, list_id) VALUES (?, ?)'
+  )
 
   db.transaction(() => {
     insertPost.run(
@@ -129,6 +137,12 @@ export async function POST(request: NextRequest) {
     )
     for (const tagId of data.tag_ids) {
       insertTag.run(id, tagId)
+    }
+    for (const groupId of data.group_ids) {
+      insertGroupAccess.run(id, groupId)
+    }
+    for (const listId of data.list_ids) {
+      insertListAccess.run(id, listId)
     }
   })()
 

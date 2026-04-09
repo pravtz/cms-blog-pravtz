@@ -133,6 +133,108 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_newsletter_token ON newsletter_subscribers(token);
       CREATE INDEX IF NOT EXISTS idx_newsletter_unsubscribe ON newsletter_subscribers(unsubscribe_token);
     `,
+    '005_user_profile': `
+      ALTER TABLE users ADD COLUMN nickname TEXT;
+      ALTER TABLE users ADD COLUMN phone TEXT;
+      ALTER TABLE users ADD COLUMN first_login_done INTEGER NOT NULL DEFAULT 0;
+      CREATE TABLE IF NOT EXISTS user_interests (
+        user_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        PRIMARY KEY (user_id, category_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+      );
+    `,
+    '006_rbac': `
+      CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        is_system INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS group_members (
+        group_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        PRIMARY KEY (group_id, user_id),
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS group_permissions (
+        group_id TEXT NOT NULL,
+        resource TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        allowed INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (group_id, resource, operation),
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS user_permissions (
+        user_id TEXT NOT NULL,
+        resource TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        allowed INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (user_id, resource, operation),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
+      INSERT OR IGNORE INTO groups (id, name, description, is_system) VALUES
+        ('group-owner', 'owner', 'System owner group — immutable', 1),
+        ('group-default', 'default', 'Default group for all users — immutable', 1);
+    `,
+    '007_audit_log': `
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        actor_id TEXT,
+        actor_email TEXT,
+        action TEXT NOT NULL,
+        target_id TEXT,
+        target_type TEXT,
+        metadata TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+    `,
+    '008_visibility_access': `
+      CREATE TABLE IF NOT EXISTS access_lists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        created_by TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE TABLE IF NOT EXISTS access_list_members (
+        list_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        PRIMARY KEY (list_id, user_id),
+        FOREIGN KEY (list_id) REFERENCES access_lists(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS post_group_access (
+        post_id TEXT NOT NULL,
+        group_id TEXT NOT NULL,
+        PRIMARY KEY (post_id, group_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+      );
+      CREATE TABLE IF NOT EXISTS post_list_access (
+        post_id TEXT NOT NULL,
+        list_id TEXT NOT NULL,
+        PRIMARY KEY (post_id, list_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (list_id) REFERENCES access_lists(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_access_list_members_user ON access_list_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_post_group_access_post ON post_group_access(post_id);
+      CREATE INDEX IF NOT EXISTS idx_post_list_access_post ON post_list_access(post_id);
+    `,
   }
 
   const applied = database

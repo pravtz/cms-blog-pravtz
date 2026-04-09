@@ -205,6 +205,45 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);
       CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
     `,
+    '008_visibility_access': `
+      CREATE TABLE IF NOT EXISTS access_lists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        created_by TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS access_list_members (
+        list_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        PRIMARY KEY (list_id, user_id),
+        FOREIGN KEY (list_id) REFERENCES access_lists(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS post_group_access (
+        post_id TEXT NOT NULL,
+        group_id TEXT NOT NULL,
+        PRIMARY KEY (post_id, group_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS post_list_access (
+        post_id TEXT NOT NULL,
+        list_id TEXT NOT NULL,
+        PRIMARY KEY (post_id, list_id),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (list_id) REFERENCES access_lists(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_access_list_members_user ON access_list_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_post_group_access_post ON post_group_access(post_id);
+      CREATE INDEX IF NOT EXISTS idx_post_list_access_post ON post_list_access(post_id);
+    `,
   }
 
   const applied = database

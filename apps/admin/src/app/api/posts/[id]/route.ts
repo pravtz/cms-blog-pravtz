@@ -54,7 +54,19 @@ export async function GET(
     `)
     .all(params.id)
 
-  return NextResponse.json({ post: { ...post, tags } })
+  const group_ids = (
+    db
+      .prepare('SELECT group_id FROM post_group_access WHERE post_id = ?')
+      .all(params.id) as Array<{ group_id: string }>
+  ).map((r) => r.group_id)
+
+  const list_ids = (
+    db
+      .prepare('SELECT list_id FROM post_list_access WHERE post_id = ?')
+      .all(params.id) as Array<{ list_id: string }>
+  ).map((r) => r.list_id)
+
+  return NextResponse.json({ post: { ...post, tags, group_ids, list_ids } })
 }
 
 const UpdatePostSchema = z.object({
@@ -67,6 +79,8 @@ const UpdatePostSchema = z.object({
   language: z.string().optional(),
   category_id: z.string().uuid().optional().nullable(),
   tag_ids: z.array(z.string().uuid()).optional(),
+  group_ids: z.array(z.string()).optional(),
+  list_ids: z.array(z.string().uuid()).optional(),
   cover_image: z.string().optional().nullable(),
   seo_title: z.string().max(200).optional().nullable(),
   seo_description: z.string().max(500).optional().nullable(),
@@ -137,6 +151,10 @@ export async function PUT(
 
   const deleteTags = db.prepare('DELETE FROM post_tags WHERE post_id = ?')
   const insertTag = db.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)')
+  const deleteGroupAccess = db.prepare('DELETE FROM post_group_access WHERE post_id = ?')
+  const insertGroupAccess = db.prepare('INSERT OR IGNORE INTO post_group_access (post_id, group_id) VALUES (?, ?)')
+  const deleteListAccess = db.prepare('DELETE FROM post_list_access WHERE post_id = ?')
+  const insertListAccess = db.prepare('INSERT OR IGNORE INTO post_list_access (post_id, list_id) VALUES (?, ?)')
 
   db.transaction(() => {
     db.prepare(`UPDATE posts SET ${updates.join(', ')} WHERE id = ?`).run(...values, params.id)
@@ -144,6 +162,18 @@ export async function PUT(
       deleteTags.run(params.id)
       for (const tagId of data.tag_ids) {
         insertTag.run(params.id, tagId)
+      }
+    }
+    if (data.group_ids !== undefined) {
+      deleteGroupAccess.run(params.id)
+      for (const groupId of data.group_ids) {
+        insertGroupAccess.run(params.id, groupId)
+      }
+    }
+    if (data.list_ids !== undefined) {
+      deleteListAccess.run(params.id)
+      for (const listId of data.list_ids) {
+        insertListAccess.run(params.id, listId)
       }
     }
   })()

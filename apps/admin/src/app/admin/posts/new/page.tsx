@@ -24,6 +24,8 @@ export default function NewPostPage() {
         language: data.frontmatter.language,
         category_id: data.frontmatter.category_id,
         tag_ids: data.frontmatter.tag_ids,
+        group_ids: data.frontmatter.group_ids,
+        list_ids: data.frontmatter.list_ids,
         cover_image: data.frontmatter.cover_image || null,
         seo_title: data.frontmatter.seo_title || null,
         seo_description: data.frontmatter.seo_description || null,

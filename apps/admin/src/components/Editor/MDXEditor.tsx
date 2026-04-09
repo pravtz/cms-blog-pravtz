@@ -30,6 +30,8 @@ const DEFAULT_FRONTMATTER: FrontmatterData = {
   excerpt: '',
   category_id: null,
   tag_ids: [],
+  group_ids: [],
+  list_ids: [],
   publish_date: '',
   language: 'pt-BR',
   visibility: 'public',

@@ -9,6 +9,8 @@ export interface FrontmatterData {
   excerpt: string
   category_id: string | null
   tag_ids: string[]
+  group_ids: string[]
+  list_ids: string[]
   publish_date: string
   language: string
   visibility: 'public' | 'allPrivate' | 'groupPrivate' | 'listPrivate' | 'iPrivate'
@@ -30,6 +32,16 @@ interface Tag {
   slug: string
 }
 
+interface Group {
+  id: string
+  name: string
+}
+
+interface AccessList {
+  id: string
+  name: string
+}
+
 interface FrontmatterDrawerProps {
   open: boolean
   onClose: () => void
@@ -45,6 +57,8 @@ export function FrontmatterDrawer({
 }: FrontmatterDrawerProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
+  const [accessLists, setAccessLists] = useState<AccessList[]>([])
   const [newCategory, setNewCategory] = useState('')
   const [newTag, setNewTag] = useState('')
   const [creatingCat, setCreatingCat] = useState(false)
@@ -60,6 +74,12 @@ export function FrontmatterDrawer({
     fetch('/api/tags')
       .then((r) => r.json())
       .then((d) => setTags(d.tags ?? []))
+    fetch('/api/groups')
+      .then((r) => r.json())
+      .then((d) => setGroups(d.groups ?? []))
+    fetch('/api/access-lists')
+      .then((r) => r.json())
+      .then((d) => setAccessLists(d.lists ?? []))
   }, [open])
 
   // Focus trap
@@ -310,6 +330,60 @@ export function FrontmatterDrawer({
               <option value="iPrivate">Only me (author)</option>
             </select>
           </div>
+
+          {/* Group access (groupPrivate) */}
+          {data.visibility === 'groupPrivate' && (
+            <div className={styles.field}>
+              <label className={styles.label}>Allowed groups</label>
+              <div className={styles.tagCloud}>
+                {groups.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`${styles.tagChip} ${data.group_ids.includes(g.id) ? styles.tagActive : ''}`}
+                    onClick={() => {
+                      const ids = data.group_ids.includes(g.id)
+                        ? data.group_ids.filter((id) => id !== g.id)
+                        : [...data.group_ids, g.id]
+                      onChange({ group_ids: ids })
+                    }}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+              {groups.length === 0 && (
+                <p className={styles.hint}>No groups available. Create groups in the admin panel.</p>
+              )}
+            </div>
+          )}
+
+          {/* List access (listPrivate) */}
+          {data.visibility === 'listPrivate' && (
+            <div className={styles.field}>
+              <label className={styles.label}>Allowed lists</label>
+              <div className={styles.tagCloud}>
+                {accessLists.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className={`${styles.tagChip} ${data.list_ids.includes(l.id) ? styles.tagActive : ''}`}
+                    onClick={() => {
+                      const ids = data.list_ids.includes(l.id)
+                        ? data.list_ids.filter((id) => id !== l.id)
+                        : [...data.list_ids, l.id]
+                      onChange({ list_ids: ids })
+                    }}
+                  >
+                    {l.name}
+                  </button>
+                ))}
+              </div>
+              {accessLists.length === 0 && (
+                <p className={styles.hint}>No access lists available. Create lists in the admin panel.</p>
+              )}
+            </div>
+          )}
 
           {/* Cover image */}
           <div className={styles.field}>

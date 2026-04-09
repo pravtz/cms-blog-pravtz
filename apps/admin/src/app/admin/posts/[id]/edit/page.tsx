@@ -21,6 +21,8 @@ interface RawPost {
   publish_date: string | null
   translation_link: string | null
   tags: Array<{ id: string; name: string; slug: string }>
+  group_ids: string[]
+  list_ids: string[]
 }
 
 export default function EditPostPage() {
@@ -44,6 +46,8 @@ export default function EditPostPage() {
             excerpt: post.excerpt ?? '',
             category_id: post.category_id,
             tag_ids: (post.tags ?? []).map((t) => t.id),
+            group_ids: post.group_ids ?? [],
+            list_ids: post.list_ids ?? [],
             publish_date: post.publish_date ?? '',
             language: post.language ?? 'pt-BR',
             visibility: post.visibility ?? 'public',
@@ -72,6 +76,8 @@ export default function EditPostPage() {
         language: data.frontmatter.language,
         category_id: data.frontmatter.category_id,
         tag_ids: data.frontmatter.tag_ids,
+        group_ids: data.frontmatter.group_ids,
+        list_ids: data.frontmatter.list_ids,
         cover_image: data.frontmatter.cover_image || null,
         seo_title: data.frontmatter.seo_title || null,
         seo_description: data.frontmatter.seo_description || null,
