@@ -8,6 +8,11 @@
 - Vitest coverage: exclude `db.ts`, `mdx.ts`, `rate-limit.ts` from coverage (require external deps); target files are `auth.ts`, `rbac.ts`, `utils.ts`, `auth-middleware.ts`, `v1-helpers.ts`.
 - The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
 
+- Admin layout (`apps/admin/src/app/admin/layout.tsx`): client component; skips sidebar/header for AUTH_PATHS (login, setup, register, confirm-email, interests); auth guard redirects to login if no accessToken in localStorage; includes ToastProvider for all admin pages.
+- AccessToken flow: login API returns `accessToken` in body → stored in `localStorage.setItem('accessToken', ...)` + `localStorage.setItem('currentUser', JSON.stringify(user))` in login-form.tsx. All protected client pages read `localStorage.getItem('accessToken')` and send as `Authorization: Bearer <token>`.
+- AdminLayout components in `apps/admin/src/components/AdminLayout/` — DynamicSidebar, AdminHeader, CommandPalette. Add new auth-only paths to AUTH_PATHS array in layout.tsx.
+- Metrics API at `GET /api/admin/metrics` — uses `requireAuth` (not requireRole), returns publishedPosts, draftPosts, activeUsers, pendingUsers, totalViews, newsletterSubscribers, topPosts, recentActivity.
+
 - Blog `PostGrid.tsx` is a `'use client'` component; receives `initialPosts` + `total` from SSG page; LoadMore fetches from blog's own `/api/posts` route (which proxies to admin's `/api/blog/posts`).
 - Blog's `next.config.js` uses `images.remotePatterns` with `{ protocol: 'https'/'http', hostname: '**' }` to allow any remote cover image.
 - Blog home page uses `export const revalidate = 60` (ISR) for automatic page refresh.
@@ -346,4 +351,29 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - FrontmatterDrawer fetches groups from `/api/groups` (already existing from US-13/14) and access lists from `/api/access-lists` (new in this story)
   - iPrivate posts are already excluded from the blog SSG via the blog posts API condition `visibility != 'iPrivate'`; no additional changes needed
   - Blog RBACBanner uses only CSS vars from the design system — no direct color values
+---
+
+## 2026-04-09 - US-17
+- Implemented full admin panel layout with DynamicSidebar (64px collapsed → 280px hover-expand, mobile drawer+overlay)
+- AdminHeader with blog name, pending-user notification badge, user avatar dropdown (name/email/role/logout), Ctrl+K command palette trigger
+- CommandPalette (Ctrl+K): searchable, keyboard-navigable (↑↓ Enter Esc) list of admin commands
+- Critical notification banner for pending user approvals (dismissible)
+- FAB 'New Post' button (fixed bottom-right)
+- Admin layout (apps/admin/src/app/admin/layout.tsx): client component using usePathname() to skip sidebar/header for auth paths (login, setup, register, confirm-email, interests); auth guard redirects to login if no accessToken
+- Dashboard with MetricCards (SVG sparklines, published posts/active users/views/newsletter), ActivityFeed (20 recent audit events), TopPostsWidget (5 most viewed), QuickActions grid
+- GET /api/admin/metrics: aggregates counts from DB + top posts + recent audit events
+- Users page (/admin/users): tabbed status filter (all/pending/active/suspended/unconfirmed), user table with approve/reject/suspend/reactivate actions, profile detail modal, edit role+groups modal
+- GET /api/admin/users/[id]: user detail with groups; PATCH: update role and group memberships
+- POST /api/admin/users/[id]/suspend: suspend active user (audited)
+- POST /api/admin/users/[id]/reactivate: reactivate suspended/pending user (audited)
+- Fixed login-form.tsx to store accessToken and currentUser in localStorage after successful login (was missing — other pages depend on localStorage.getItem('accessToken'))
+- Files changed: 17 new files + 2 modified (login-form.tsx, dashboard/page.tsx)
+- **Learnings for future iterations:**
+  - Admin layout uses route-group-style path detection with isAuthPath() — add new auth-only paths to the AUTH_PATHS array in layout.tsx
+  - DynamicSidebar expands on :hover via CSS (no JS state) — works because the sidebar is always rendered, just narrow. Mobile uses a separate .drawer with JS toggle
+  - AccessToken flow: login API returns accessToken in body; login-form.tsx stores in localStorage; all protected admin pages read from localStorage.getItem('accessToken') and send as Bearer header
+  - currentUser is stored alongside accessToken — AdminHeader reads it to show user name/email/role/initials
+  - Metrics API is at /api/admin/metrics (requireAuth, not requireRole — all logged-in users can see dashboard)
+  - User management actions (approve/reject = existing routes; suspend/reactivate = new routes at /api/admin/users/[id]/suspend and .../reactivate)
+  - PATCH /api/admin/users/[id] handles both role change and group membership update atomically
 ---

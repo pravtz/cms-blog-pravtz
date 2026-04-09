@@ -153,7 +153,7 @@
       "priority": 17,
       "version": "v0.2",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Build the admin panel layout: DynamicSidebar (280px expanded, 64px collapsed, hover-expand, mobile drawer+overlay), Header (blog name+logo, notification badge, user avatar dropdown), FAB 'New Post', Ctrl+K command palette, critical notification banners. Dashboard: MetricCards (sparklines for visitors/views/engagement/SEO/newsletter), ActivityFeed (20 recent events), TopPostsWidget (5 posts), QuickActions. User CRUD: list with status filters, pending badge, approve/reject, role/group edit, suspend/reactivate, profile detail view, session management. Group CRUD and RBAC matrix UI."
     },
     {
