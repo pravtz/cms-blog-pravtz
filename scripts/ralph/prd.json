@@ -162,7 +162,7 @@
       "priority": 18,
       "version": "v0.2",
       "prd": "PRD-11",
-      "passes": false,
+      "passes": true,
       "description": "Write Playwright E2E tests: First Run wizard creates Owner and redirects to Dashboard; second access to /admin/setup redirects to login. User registers, confirms email, waits for approval, gets approved, logs in. Owner sets RBAC permissions per group. Post with visibility=allPrivate not visible to anonymous visitor but visible to logged-in approved user. Use PostgreSQL in container + MailHog for email capture."
     },
     {

@@ -377,3 +377,22 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - User management actions (approve/reject = existing routes; suspend/reactivate = new routes at /api/admin/users/[id]/suspend and .../reactivate)
   - PATCH /api/admin/users/[id] handles both role change and group membership update atomically
 ---
+
+## 2026-04-09 - US-18
+- Created `apps/e2e/` Playwright E2E test package (new workspace)
+- Created 4 test suites covering: First Run wizard, Registration/Approval flow, RBAC permissions, Post visibility (allPrivate)
+- Added test-only API endpoints (gated by `E2E_TESTING=true`):
+  - `POST /api/test/reset` — clears all DB tables for a fresh state between test suites
+  - `GET /api/test/email-token?email=` — returns email confirmation token from DB (replaces MailHog for SQLite-based app)
+- Playwright config starts both admin (port 3901) and blog (port 3900) dev servers with `E2E_TESTING=true` + dedicated `DATA_DIR=/tmp/nexus-e2e`
+- Tests run sequentially (`workers: 1`) since each suite resets DB state
+- Added `test:e2e` script to root package.json
+- Files changed: apps/e2e/(package.json, playwright.config.ts, tsconfig.json, fixtures/helpers.ts, tests/01-04-*.spec.ts), apps/admin/src/app/api/test/reset/route.ts, apps/admin/src/app/api/test/email-token/route.ts, package.json, package-lock.json
+- **Learnings for future iterations:**
+  - Playwright in npm workspaces: `@playwright/test` is resolved from root `node_modules` — no need for a local copy in `apps/e2e/node_modules`
+  - E2E tsconfig needs `"lib": ["ES2022", "DOM"]` — `page.evaluate()` callbacks reference `window` which requires DOM lib
+  - Test isolation strategy: `POST /api/test/reset` + `POST /api/setup/complete` in `beforeAll` of each spec file
+  - The PRD says "Use PostgreSQL + MailHog" but the app uses SQLite; adapted to use a test endpoint for email token retrieval instead of MailHog, which is simpler and still tests the full flow
+  - Blog `allPrivate` posts show RBACBanner to ALL visitors (SSG, no per-request auth); public v1 API returns 404 for non-public posts
+  - Admin posts API uses UUID (not slug) for individual post access: `GET /api/posts/:id`
+---
