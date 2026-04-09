@@ -144,7 +144,7 @@
       "priority": 16,
       "version": "v0.2",
       "prd": "PRD-02",
-      "passes": false,
+      "passes": true,
       "description": "Implement all visibility levels: public, allPrivate (login+approval), groupPrivate (login+group membership), listPrivate (login+list membership), iPrivate (author/owner only). Blog public: restricted posts show blur(8px) + RBACBanner (lock icon, message, login/register CTAs). API: private posts return 404. SSG: iPrivate posts excluded from generated HTML entirely. FrontmatterDrawer: conditional group/list selector when groupPrivate/listPrivate selected."
     },
     {

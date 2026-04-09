@@ -323,3 +323,27 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `metadata` is stored as JSON string in SQLite and parsed back on read in the API route
   - Audit action for post.published is set whenever `data.status === 'published'` in both create and update flows
 ---
+
+## 2026-04-09 - US-16
+- Implemented all post visibility levels with RBAC enforcement
+- DB migration 008: added `access_lists`, `access_list_members`, `post_group_access`, `post_list_access` tables
+- New admin API `/api/access-lists` (GET list, POST create) for managing private access lists
+- Updated `PostSchema` in `/api/posts/route.ts` and `UpdatePostSchema` in `/api/posts/[id]/route.ts` to accept `group_ids` and `list_ids`
+- POST/PUT handlers insert/update `post_group_access` and `post_list_access` tables within existing transactions
+- GET `/api/posts/[id]` now returns `group_ids` and `list_ids` arrays
+- `FrontmatterData` interface extended with `group_ids: string[]` and `list_ids: string[]`
+- `FrontmatterDrawer`: fetches groups and access lists on open; shows group chip-selector when `groupPrivate` selected, list chip-selector when `listPrivate`; added `.hint` CSS class for empty-state messages
+- `MDXEditor` default frontmatter updated with `group_ids: []` and `list_ids: []`
+- Edit/new post pages updated to pass `group_ids`/`list_ids` in save payload
+- Blog: new `RBACBanner` component with lock icon SVG, descriptive message per visibility type, login/register CTA buttons
+- Blog post page: detects `allPrivate`/`groupPrivate`/`listPrivate` visibility; shows blurred excerpt + `RBACBanner` instead of full content; hides recommendations/newsletter/comments for restricted posts
+- `PostCard` and `FeedPostCard`: show "Members only" lock badge for non-public posts
+- Test helper `db.ts` updated with migrations 005–008 to keep integration tests passing
+- Files changed: db.ts, access-lists/route.ts (new), posts/route.ts, posts/[id]/route.ts, FrontmatterDrawer.tsx, FrontmatterDrawer.module.css, MDXEditor.tsx, posts/new/page.tsx, posts/[id]/edit/page.tsx, helpers/db.ts, RBACBanner.tsx (new), RBACBanner.module.css (new), blog/[slug]/page.tsx, blog/[slug]/page.module.css, PostCard.tsx, PostCard.module.css, FeedPostCard.tsx, FeedPostCard.module.css
+- **Learnings for future iterations:**
+  - Test helper `src/__tests__/helpers/db.ts` must be kept in sync with `src/lib/db.ts` migrations — any new migration in db.ts must also be added there, otherwise integration tests will fail with "no such table" errors
+  - `post_group_access` and `post_list_access` use the pattern of join tables with CASCADE DELETE on both sides
+  - FrontmatterDrawer fetches groups from `/api/groups` (already existing from US-13/14) and access lists from `/api/access-lists` (new in this story)
+  - iPrivate posts are already excluded from the blog SSG via the blog posts API condition `visibility != 'iPrivate'`; no additional changes needed
+  - Blog RBACBanner uses only CSS vars from the design system — no direct color values
+---
