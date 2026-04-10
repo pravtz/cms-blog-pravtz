@@ -207,7 +207,7 @@
       "priority": 23,
       "version": "v0.3",
       "prd": "PRD-07",
-      "passes": false,
+      "passes": true,
       "description": "Implement translationGroupId linking between post versions. Language toggle in ArticleHeader (flag + code, disabled with tooltip if no translation). Editor: language field in FrontmatterDrawer, 'linked translation' search field. Admin list: badge showing if post has a translation. SEO: hreflang tags (pt-BR, en, x-default) in post page head. API: translations array in /api/v1/posts/:slug response."
     },
     {

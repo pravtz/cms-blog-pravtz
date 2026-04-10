@@ -3,7 +3,7 @@
 - `Modal` prop is `open` (not `isOpen`). Other props: `onClose`, `title`, `footer` (ReactNode).
 - Badge variants: `'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'` — no `neutral` variant.
 - Test files (`src/__tests__/`) are excluded from `tsconfig.json` — they use top-level `await import()` which requires `target: ES2022` not set in the Next.js tsconfig. Vitest handles ESM natively so type-checking tests separately is fine.
-- Integration tests mock `@/lib/db` with `vi.mock()` returning an in-memory SQLite DB (created via `createTestDb()` in `helpers/db.ts`). Never call `getDb()` directly in test setup.
+- Integration tests mock `@/lib/db` with `vi.mock()` returning an in-memory SQLite DB (created via `createTestDb()` in `helpers/db.ts`). Never call `getDb()` directly in test setup. IMPORTANT: When adding a DB migration to `db.ts`, also add it to `src/__tests__/helpers/db.ts` — the test helper has its own independent migration list.
 - SQLite `datetime('now', ...)` returns `'YYYY-MM-DD HH:MM:SS'` (no T, no timezone). JavaScript's `new Date()` ISO format is `'YYYY-MM-DDTHH:MM:SS.sssZ'`. String comparison between these formats is unreliable (space < 'T' in ASCII). Always insert test timestamps using `new Date(...).toISOString()` to match what the route's `windowStart` comparison expects.
 - Vitest coverage: exclude `db.ts`, `mdx.ts`, `rate-limit.ts` from coverage (require external deps); target files are `auth.ts`, `rbac.ts`, `utils.ts`, `auth-middleware.ts`, `v1-helpers.ts`.
 - The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
@@ -466,4 +466,27 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - CSV export from admin API requires a fetch-and-blob-download approach in the client (can't set Authorization header via `<a href>` link)
   - `sendNewsletterConfirmation` signature updated to include optional `unsubscribeToken` — backward compatible (undefined = no unsubscribe link in email)
   - `/privacidade` page is a static server component with ISR defaults — no special configuration needed
+---
+
+## 2026-04-10 - US-23
+- Implemented multilingual post system using `translation_group_id` (UUID shared between translation pairs)
+- DB migration `012_translations`: added `translation_group_id TEXT` + index to posts table
+- Updated `GET /api/posts` to support `?search=` param for post picker and return `has_translation` flag
+- Updated `POST /api/posts` and `PUT /api/posts/[id]` to accept `linked_post_id` — backend auto-assigns shared `translation_group_id` to both posts bidirectionally
+- `GET /api/posts/[id]` now returns `linked_post` object (id, title, slug, language) when a translation exists
+- FrontmatterDrawer: replaced free-text "Translation link" field with searchable post picker (debounced 300ms search via `/api/posts?search=`; shows language badge + title in results; shows linked post with clear button when selected)
+- MDXEditor default frontmatter: added `linked_post_id: null` and `linked_post_title: ''`
+- Admin posts list: added Language column (🇧🇷 PT / 🇬🇧 EN) and translation badge (🔗) when post has a translation
+- `GET /api/blog/posts/[slug]`: returns `translation` object `{ slug, language }` for blog consumption
+- Blog `PostDetail` type: added `translation_group_id` and `translation` fields
+- Blog post page `generateMetadata`: hreflang now uses `translation_group_id`-based lookup, adds `x-default` pointing to pt-BR version
+- Blog `ArticleHeader`: added `LanguageToggle` component (flag + code buttons; active language non-clickable; translation link navigates to other post; disabled with tooltip when no translation)
+- v1 API `GET /api/v1/posts/[slug]`: now uses `translation_group_id` for sibling lookup instead of `translation_link` slug
+- Test helper `src/__tests__/helpers/db.ts`: added `012_translations` migration to keep in-memory test DB in sync
+- Files changed: `apps/admin/src/lib/db.ts`, `apps/admin/src/__tests__/helpers/db.ts`, `apps/admin/src/app/api/posts/route.ts`, `apps/admin/src/app/api/posts/[id]/route.ts`, `apps/admin/src/app/api/blog/posts/[slug]/route.ts`, `apps/admin/src/app/api/v1/posts/[slug]/route.ts`, `apps/admin/src/components/Editor/FrontmatterDrawer.tsx`, `apps/admin/src/components/Editor/FrontmatterDrawer.module.css`, `apps/admin/src/components/Editor/MDXEditor.tsx`, `apps/admin/src/app/admin/posts/page.tsx`, `apps/admin/src/app/admin/posts/page.module.css`, `apps/admin/src/app/admin/posts/[id]/edit/page.tsx`, `apps/admin/src/app/admin/posts/new/page.tsx`, `apps/blog/src/lib/api.ts`, `apps/blog/src/app/blog/[slug]/page.tsx`, `apps/blog/src/components/ArticleHeader.tsx`, `apps/blog/src/components/LanguageToggle.tsx` (new), `apps/blog/src/components/LanguageToggle.module.css` (new)
+- **Learnings for future iterations:**
+  - When adding a new column to posts via migration, ALWAYS also add it to `apps/admin/src/__tests__/helpers/db.ts` — the test helper has its own copy of all migrations that must be kept in sync.
+  - Bidirectional translation linking: assign shared UUID to both posts in the same DB transaction to keep them in sync.
+  - `translation_link` (old free-text field) is kept in schema but superseded by `translation_group_id`; don't remove it for backward compat.
+  - x-default hreflang convention: points to the "primary" language version (pt-BR in this project).
 ---
