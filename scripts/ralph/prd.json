@@ -180,7 +180,7 @@
       "priority": 20,
       "version": "v0.3",
       "prd": "PRD-07",
-      "passes": false,
+      "passes": true,
       "description": "Implement post likes: heart icon on PostCard and post page (outline → filled when liked). 1 like per user per post (toggle). Optimistic UI update with server rollback on error. Count visible to all. Login required to like — unauthenticated click shows 'Login to like' modal/tooltip. Pulse animation on like. Track like counts in post metrics."
     },
     {

@@ -417,3 +417,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - CommentSystemPlaceholder.tsx still exists but is no longer imported; the real CommentSystem replaced it in post page
   - DynamicSidebar NAV_ITEMS controls sidebar links — always add new admin sections here
 ---
+
+## 2026-04-10 - US-20
+- Implemented post likes system with toggle, optimistic UI, and auth guard
+- Added `post_likes` DB table (migration `010_post_likes`) with post_id+user_id PK, cascading deletes, and indexes
+- Created `GET/POST /api/blog/posts/[slug]/likes` admin API route with JWT auth, CORS headers, and toggle logic
+- Added `like_count` subquery to blog posts list and detail API routes
+- Added `like_count` to `Post` and `PostDetail` types in `apps/blog/src/lib/api.ts`
+- Created `LikeButton` client component: heart icon (outline→filled), optimistic toggle with server rollback, pulse animation on like, login tooltip for unauthenticated users
+- Added `LikeButton` to `PostCard.tsx` (in footer) and `ArticleHeader.tsx` (in byline)
+- Files changed: `apps/admin/src/lib/db.ts`, `apps/admin/src/app/api/blog/posts/route.ts`, `apps/admin/src/app/api/blog/posts/[slug]/route.ts`, new `apps/admin/src/app/api/blog/posts/[slug]/likes/route.ts`, `apps/blog/src/lib/api.ts`, new `apps/blog/src/components/LikeButton.tsx`, new `apps/blog/src/components/LikeButton.module.css`, `apps/blog/src/components/PostCard.tsx`, `apps/blog/src/components/ArticleHeader.tsx`
+- **Learnings for future iterations:**
+  - LikeButton uses same session pattern as CommentSystem: `fetch(/api/auth/session, { credentials: 'include' })` then Authorization header for subsequent calls
+  - `post_like_count` is computed via subquery `(SELECT COUNT(*) FROM post_likes WHERE post_id = p.id)` — no denormalized column needed
+  - Server components (PostCard, ArticleHeader) can directly import client components (LikeButton) in Next.js App Router
+  - Pulse animation: `@keyframes heartPulse` toggled via a transient CSS class (add on click, remove via setTimeout); avoids animation replay issues
+  - Optimistic UI pattern: snapshot prev state → apply optimistic update → API call → on error revert to snapshot
+---
