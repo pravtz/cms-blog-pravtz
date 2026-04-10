@@ -198,7 +198,7 @@
       "priority": 22,
       "version": "v0.3",
       "prd": "PRD-07",
-      "passes": false,
+      "passes": true,
       "description": "Implement NewsletterCard on post pages: email input, mandatory privacy checkbox (link to /privacidade), disabled submit until checked. Double Opt-in: UUID token (48h expiry), confirmation email, /newsletter/confirm?token= endpoint. Handle already-active, already-pending, and new subscriber cases. Unsubscribe: link in all emails, /newsletter/unsubscribe?token=, one-click, status→unsubscribed (not deleted). Admin CRUD: subscriber list with status filter, CSV export, remove action. /privacidade public page."
     },
     {

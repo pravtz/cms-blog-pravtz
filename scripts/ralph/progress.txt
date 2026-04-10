@@ -450,3 +450,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Share count uses COUNT(*) subquery (same pattern as like_count) — simple and consistent
   - Drop-down menus: use `role="menu"` + `role="menuitem"` for accessibility; close on outside click via `useEffect` + `mousedown` listener
 ---
+
+## 2026-04-10 - US-22
+- Unsubscribe endpoint: `GET /api/blog/newsletter/unsubscribe?token=` — looks up `unsubscribe_token`, sets status='unsubscribed' (not deleted)
+- Blog unsubscribe page: `apps/blog/src/app/newsletter/unsubscribe/page.tsx` — same pattern as confirm page (client + Suspense + NEXT_PUBLIC_ADMIN_URL)
+- Updated `sendNewsletterConfirmation()` in `email.ts` to accept optional `unsubscribeToken` parameter and include unsubscribe link in email footer
+- Updated newsletter POST route to fetch and pass `unsubscribe_token` to the confirmation email for both new and re-subscribing users
+- Admin newsletter API: `GET /api/admin/newsletter` (list with status filter, page, CSV export via `?export=csv`), `DELETE /api/admin/newsletter` (remove by id)
+- Admin newsletter page: `/admin/newsletter` with tab filter (Todos/Ativos/Pendentes/Cancelados), subscriber table, CSV export button, remove action, pagination
+- Blog `/privacidade` page: full LGPD-compliant privacy policy in Portuguese (12 sections)
+- Added Newsletter link to admin DynamicSidebar
+- Files changed: apps/admin/src/lib/email.ts, apps/admin/src/app/api/blog/newsletter/route.ts, +unsubscribe/route.ts, +api/admin/newsletter/route.ts, +admin/newsletter/page.tsx, +page.module.css, apps/admin/src/components/AdminLayout/DynamicSidebar.tsx, +apps/blog/src/app/newsletter/unsubscribe/page.tsx, +apps/blog/src/app/privacidade/page.tsx, +page.module.css
+- **Learnings for future iterations:**
+  - Newsletter unsubscribe page reuses `apps/blog/src/app/newsletter/confirm/page.module.css` — no new CSS file needed since layouts are identical
+  - CSV export from admin API requires a fetch-and-blob-download approach in the client (can't set Authorization header via `<a href>` link)
+  - `sendNewsletterConfirmation` signature updated to include optional `unsubscribeToken` — backward compatible (undefined = no unsubscribe link in email)
+  - `/privacidade` page is a static server component with ISR defaults — no special configuration needed
+---
