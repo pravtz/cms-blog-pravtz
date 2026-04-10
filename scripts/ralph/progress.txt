@@ -434,3 +434,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Pulse animation: `@keyframes heartPulse` toggled via a transient CSS class (add on click, remove via setTimeout); avoids animation replay issues
   - Optimistic UI pattern: snapshot prev state → apply optimistic update → API call → on error revert to snapshot
 ---
+
+## 2026-04-10 - US-21
+- Implemented social sharing: share dropdown on PostCard, FeedPostCard, ArticleHeader, and RecommendationSection
+- Channels: WhatsApp (wa.me URL), LinkedIn (share-offsite URL), Instagram (clipboard copy + "Link copiado! Cole no Instagram." tooltip), Copy Link (Clipboard API)
+- Share count visible to all; incrementing count requires login; anti-spam: 1 registration per user per post per hour
+- DB migration `011_post_shares` with post_shares table
+- API route `apps/admin/src/app/api/blog/posts/[slug]/shares/route.ts` (GET + POST with JWT auth)
+- Updated posts list and detail APIs to include `share_count` via COUNT subquery
+- Updated `Post` and `PostDetail` types in `apps/blog/src/lib/api.ts` with `share_count: number`
+- Open Graph metadata on post pages was already complete from US-09
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/app/api/blog/posts/route.ts, apps/admin/src/app/api/blog/posts/[slug]/route.ts, apps/admin/src/app/api/blog/posts/[slug]/shares/route.ts (new), apps/blog/src/lib/api.ts, apps/blog/src/components/ShareButton.tsx (new), apps/blog/src/components/ShareButton.module.css (new), apps/blog/src/components/PostCard.tsx, apps/blog/src/components/ArticleHeader.tsx, apps/blog/src/components/RecommendationSection.tsx, apps/blog/src/components/FeedPostCard.tsx
+- **Learnings for future iterations:**
+  - `getPostUrl` inside a client component needs to be a `useCallback` if used inside other `useCallback`s — avoids react-hooks/exhaustive-deps lint warnings
+  - Share count uses COUNT(*) subquery (same pattern as like_count) — simple and consistent
+  - Drop-down menus: use `role="menu"` + `role="menuitem"` for accessibility; close on outside click via `useEffect` + `mousedown` listener
+---

@@ -189,7 +189,7 @@
       "priority": 21,
       "version": "v0.3",
       "prd": "PRD-07",
-      "passes": false,
+      "passes": true,
       "description": "Implement share dropdown on PostCard, ArticleHeader, and RecommendationSection. Channels: WhatsApp (wa.me URL), LinkedIn (share-offsite URL), Instagram (clipboard copy + 'Link copied! Paste on Instagram.' tooltip), Copy Link (Clipboard API). Share count visible to all. Registering a share (incrementing count) requires login. Anti-spam: 1 registration per user per post per hour. Full Open Graph metadata on all post pages."
     },
     {
