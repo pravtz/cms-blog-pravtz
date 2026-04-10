@@ -396,3 +396,24 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Blog `allPrivate` posts show RBACBanner to ALL visitors (SSG, no per-request auth); public v1 API returns 404 for non-public posts
   - Admin posts API uses UUID (not slug) for individual post access: `GET /api/posts/:id`
 ---
+
+## 2026-04-10 - US-19
+- Implemented full comment system with threads, voting, moderation, and notifications
+- DB migration 009_comments: comments table (id, post_id, parent_id, author_id, content, status, upvotes, downvotes), comment_votes table (1 vote per user per comment, toggle), notifications table
+- Blog API: GET /api/blog/comments?postId= (with optional auth for user_vote), POST /api/blog/comments (login required, 1-level reply limit, sends notifications)
+- Vote API: POST /api/blog/comments/[id]/vote (toggle: same vote removes it, upvotes/downvotes counts maintained atomically in transaction)
+- Report API: POST /api/blog/comments/[id]/report (sets status=flagged, auth required)
+- Session API: GET /api/auth/session (reads refreshToken cookie, returns user + fresh accessToken for cross-app blog auth)
+- Admin APIs: GET/PATCH/DELETE /api/admin/comments (list with status filter, status update, delete)
+- Notifications API: GET /api/admin/notifications (user's notifications + unread count), POST /api/admin/notifications/[id]/read
+- Blog CommentSystem component: session check via /api/auth/session, comment list with upvote/downvote/reply/report, thread replies (collapse/expand >5), skeleton loading, login prompt for unauthenticated users
+- Admin Comments page: list with status filter (all/visible/flagged/hidden), show/hide/delete actions
+- Added Comments link to admin DynamicSidebar (was the only missing piece)
+- Blog post page already imported CommentSystem (replaced CommentSystemPlaceholder)
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/components/AdminLayout/DynamicSidebar.tsx, apps/blog/src/app/blog/[slug]/page.tsx, 10 new files
+- **Learnings for future iterations:**
+  - Blog auth uses /api/auth/session cross-app: reads httpOnly refreshToken cookie (set by admin login), returns user + fresh accessToken; used by blog CommentSystem to detect session without localStorage
+  - Vote toggle logic: if existing vote === new vote, remove it (newVote=null); SQLite transaction maintains count consistency
+  - CommentSystemPlaceholder.tsx still exists but is no longer imported; the real CommentSystem replaced it in post page
+  - DynamicSidebar NAV_ITEMS controls sidebar links — always add new admin sections here
+---
