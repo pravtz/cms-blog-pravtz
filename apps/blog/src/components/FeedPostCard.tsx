@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Post } from '@/lib/api'
+import ShareButton from './ShareButton'
 import styles from './FeedPostCard.module.css'
 
 interface FeedPostCardProps {
@@ -86,6 +87,7 @@ export default function FeedPostCard({ post }: FeedPostCardProps) {
             {post.reading_time && (
               <span className={styles.readTime}>{post.reading_time} min</span>
             )}
+            <ShareButton postSlug={post.slug} postTitle={post.seo_title || post.title} initialShareCount={post.share_count ?? 0} />
           </div>
         </footer>
       </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Post } from '@/lib/api'
+import ShareButton from './ShareButton'
 import styles from './RecommendationSection.module.css'
 
 interface RecommendationSectionProps {
@@ -48,6 +49,7 @@ export default function RecommendationSection({ posts }: RecommendationSectionPr
                     })}
                   </time>
                 )}
+                <ShareButton postSlug={post.slug} postTitle={post.seo_title || post.title} initialShareCount={post.share_count ?? 0} />
               </div>
             </article>
           )

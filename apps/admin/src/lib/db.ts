@@ -261,6 +261,19 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
       CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes(user_id);
     `,
+    '011_post_shares': `
+      CREATE TABLE IF NOT EXISTS post_shares (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_post_shares_post ON post_shares(post_id);
+      CREATE INDEX IF NOT EXISTS idx_post_shares_user ON post_shares(user_id);
+    `,
     '008_visibility_access': `
       CREATE TABLE IF NOT EXISTS access_lists (
         id TEXT PRIMARY KEY,

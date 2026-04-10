@@ -16,6 +16,7 @@ export interface Post {
   publish_date: string | null
   views: number
   like_count: number
+  share_count: number
   created_at: string
   updated_at: string
   author_name: string | null
@@ -155,6 +156,7 @@ export interface PostDetail {
   translation_link: string | null
   views: number
   like_count: number
+  share_count: number
   created_at: string
   updated_at: string
   author_name: string | null
