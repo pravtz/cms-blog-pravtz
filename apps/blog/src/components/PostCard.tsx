@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Post } from '@/lib/api'
+import LikeButton from './LikeButton'
 import styles from './PostCard.module.css'
 
 interface PostCardProps {
@@ -85,6 +86,7 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
             {post.reading_time && (
               <span className={styles.readTime}>{post.reading_time} min</span>
             )}
+            <LikeButton postSlug={post.slug} initialLikeCount={post.like_count ?? 0} />
           </div>
         </footer>
       </div>

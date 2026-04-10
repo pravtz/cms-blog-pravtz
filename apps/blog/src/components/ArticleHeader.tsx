@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { PostDetail } from '@/lib/api'
+import LikeButton from './LikeButton'
 import styles from './ArticleHeader.module.css'
 
 interface ArticleHeaderProps {
@@ -68,6 +69,7 @@ export default function ArticleHeader({ post }: ArticleHeaderProps) {
           {post.reading_time && (
             <span className={styles.readTime}>{post.reading_time} min de leitura</span>
           )}
+          <LikeButton postSlug={post.slug} initialLikeCount={post.like_count ?? 0} />
         </div>
       </div>
     </header>

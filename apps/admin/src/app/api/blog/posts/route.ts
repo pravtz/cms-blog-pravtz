@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
         p.seo_title, p.seo_description, p.publish_date,
         p.views, p.created_at, p.updated_at,
         u.name AS author_name,
-        c.name AS category_name, c.slug AS category_slug
+        c.name AS category_name, c.slug AS category_slug,
+        (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id) AS like_count
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
