@@ -20,6 +20,8 @@ interface RawPost {
   seo_description: string | null
   publish_date: string | null
   translation_link: string | null
+  translation_group_id: string | null
+  linked_post: { id: string; title: string; slug: string; language: string } | null
   tags: Array<{ id: string; name: string; slug: string }>
   group_ids: string[]
   list_ids: string[]
@@ -53,6 +55,8 @@ export default function EditPostPage() {
             visibility: post.visibility ?? 'public',
             cover_image: post.cover_image ?? '',
             translation_link: post.translation_link ?? '',
+            linked_post_id: post.linked_post?.id ?? null,
+            linked_post_title: post.linked_post?.title ?? '',
             seo_title: post.seo_title ?? '',
             seo_description: post.seo_description ?? '',
           },
@@ -83,6 +87,7 @@ export default function EditPostPage() {
         seo_description: data.frontmatter.seo_description || null,
         publish_date: data.frontmatter.publish_date || null,
         translation_link: data.frontmatter.translation_link || null,
+        linked_post_id: data.frontmatter.linked_post_id ?? null,
       }),
     })
 

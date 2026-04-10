@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { PostDetail } from '@/lib/api'
 import LikeButton from './LikeButton'
 import ShareButton from './ShareButton'
+import LanguageToggle from './LanguageToggle'
 import styles from './ArticleHeader.module.css'
 
 interface ArticleHeaderProps {
@@ -72,6 +73,10 @@ export default function ArticleHeader({ post }: ArticleHeaderProps) {
           )}
           <LikeButton postSlug={post.slug} initialLikeCount={post.like_count ?? 0} />
           <ShareButton postSlug={post.slug} postTitle={post.seo_title || post.title} initialShareCount={post.share_count ?? 0} />
+          <LanguageToggle
+            currentLanguage={post.language}
+            translation={post.translation ?? null}
+          />
         </div>
       </div>
     </header>

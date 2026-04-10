@@ -10,10 +10,12 @@ interface Post {
   slug: string
   status: 'draft' | 'published' | 'scheduled'
   visibility: string
+  language: string
   category_name: string | null
   author_name: string
   reading_time: number | null
   updated_at: string
+  has_translation: number
 }
 
 interface PostsResponse {
@@ -155,6 +157,7 @@ export default function PostsPage() {
               <tr>
                 <th>Title</th>
                 <th>Status</th>
+                <th>Language</th>
                 <th>Visibility</th>
                 <th>Category</th>
                 <th>Read time</th>
@@ -170,10 +173,18 @@ export default function PostsPage() {
                       {post.title || <em className={styles.untitled}>Untitled</em>}
                     </Link>
                     <span className={styles.slug}>{post.slug}</span>
+                    {post.has_translation === 1 && (
+                      <span className={styles.translationBadge} title="Has translation">🔗</span>
+                    )}
                   </td>
                   <td>
                     <span className={`${styles.statusBadge} ${styles[`status_${post.status}`]}`}>
                       {STATUS_LABELS[post.status] ?? post.status}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={styles.langBadge}>
+                      {post.language === 'pt-BR' ? '🇧🇷 PT' : '🇬🇧 EN'}
                     </span>
                   </td>
                   <td>

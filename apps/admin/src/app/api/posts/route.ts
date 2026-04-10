@@ -28,6 +28,7 @@ const PostSchema = z.object({
   seo_description: z.string().max(500).optional().nullable(),
   publish_date: z.string().optional().nullable(),
   translation_link: z.string().optional().nullable(),
+  linked_post_id: z.string().uuid().optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -36,36 +37,42 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
+  const search = searchParams.get('search')
   const page = parseInt(searchParams.get('page') ?? '1', 10)
   const limit = 20
   const offset = (page - 1) * limit
 
   const db = getDb()
-  let query = `
-    SELECT p.*, u.name as author_name, c.name as category_name
-    FROM posts p
-    LEFT JOIN users u ON p.author_id = u.id
-    LEFT JOIN categories c ON p.category_id = c.id
-  `
+  const conditions: string[] = []
   const params: (string | number)[] = []
 
   if (status) {
-    query += ' WHERE p.status = ?'
+    conditions.push('p.status = ?')
     params.push(status)
   }
+  if (search) {
+    conditions.push('(p.title LIKE ? OR p.slug LIKE ?)')
+    params.push(`%${search}%`, `%${search}%`)
+  }
 
-  query += ' ORDER BY p.updated_at DESC LIMIT ? OFFSET ?'
-  params.push(limit, offset)
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const posts = db.prepare(query).all(...params)
+  const posts = db.prepare(`
+    SELECT p.id, p.title, p.slug, p.status, p.visibility, p.language,
+      p.reading_time, p.updated_at, p.translation_group_id,
+      u.name as author_name, c.name as category_name,
+      CASE WHEN p.translation_group_id IS NOT NULL THEN 1 ELSE 0 END as has_translation
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    ${where}
+    ORDER BY p.updated_at DESC LIMIT ? OFFSET ?
+  `).all(...params, limit, offset)
+
   const total = (
     db
-      .prepare(
-        status
-          ? 'SELECT COUNT(*) as n FROM posts WHERE status = ?'
-          : 'SELECT COUNT(*) as n FROM posts'
-      )
-      .get(...(status ? [status] : [])) as { n: number }
+      .prepare(`SELECT COUNT(*) as n FROM posts p ${where}`)
+      .get(...params) as { n: number }
   ).n
 
   return NextResponse.json({ posts, total, page, limit })
@@ -95,13 +102,24 @@ export async function POST(request: NextRequest) {
   const safeContent = sanitizeMDX(data.content)
   const readingTime = calculateReadingTime(safeContent)
 
+  // Resolve translation_group_id for bidirectional linking
+  let translationGroupId: string | null = null
+  if (data.linked_post_id) {
+    const linkedPost = db
+      .prepare('SELECT id, translation_group_id FROM posts WHERE id = ?')
+      .get(data.linked_post_id) as { id: string; translation_group_id: string | null } | undefined
+    if (linkedPost) {
+      translationGroupId = linkedPost.translation_group_id ?? uuidv4()
+    }
+  }
+
   const insertPost = db.prepare(`
     INSERT INTO posts (
       id, title, subtitle, slug, excerpt, content, status, visibility,
       language, author_id, category_id, cover_image, reading_time,
-      seo_title, seo_description, publish_date, translation_link
+      seo_title, seo_description, publish_date, translation_link, translation_group_id
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `)
 
@@ -133,8 +151,13 @@ export async function POST(request: NextRequest) {
       data.seo_title ?? null,
       data.seo_description ?? null,
       data.publish_date ?? null,
-      data.translation_link ?? null
+      data.translation_link ?? null,
+      translationGroupId
     )
+    // Link the other post to the same translation group
+    if (translationGroupId && data.linked_post_id) {
+      db.prepare('UPDATE posts SET translation_group_id = ? WHERE id = ?').run(translationGroupId, data.linked_post_id)
+    }
     for (const tagId of data.tag_ids) {
       insertTag.run(id, tagId)
     }

@@ -37,6 +37,8 @@ const DEFAULT_FRONTMATTER: FrontmatterData = {
   visibility: 'public',
   cover_image: '',
   translation_link: '',
+  linked_post_id: null,
+  linked_post_title: '',
   seo_title: '',
   seo_description: '',
 }

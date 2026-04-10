@@ -235,6 +235,10 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_post_group_access_post ON post_group_access(post_id);
       CREATE INDEX IF NOT EXISTS idx_post_list_access_post ON post_list_access(post_id);
     `,
+    '012_translations': `
+      ALTER TABLE posts ADD COLUMN translation_group_id TEXT;
+      CREATE INDEX IF NOT EXISTS idx_posts_translation_group ON posts(translation_group_id);
+    `,
   }
 
   const applied = database

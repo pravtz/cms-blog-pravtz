@@ -42,6 +42,19 @@ export async function GET(
     )
     .all(post.id as string) as Array<{ name: string; slug: string }>
 
+  // Get linked translation (same translation_group_id, different post)
+  let translation: { slug: string; language: string } | null = null
+  if (post.translation_group_id) {
+    translation = db
+      .prepare(
+        `SELECT slug, language FROM posts
+         WHERE translation_group_id = ? AND id != ?
+           AND status = 'published' AND visibility != 'iPrivate'
+         LIMIT 1`
+      )
+      .get(post.translation_group_id as string, post.id as string) as typeof translation
+  }
+
   // Render content to HTML
   const content_html = await renderMDX((post.content as string) || '')
 
@@ -88,7 +101,7 @@ export async function GET(
   }
 
   return NextResponse.json(
-    { post: { ...post, tags, content_html }, recommendations },
+    { post: { ...post, tags, content_html, translation }, recommendations },
     {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',

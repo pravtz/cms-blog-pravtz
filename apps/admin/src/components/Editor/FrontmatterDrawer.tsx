@@ -16,6 +16,8 @@ export interface FrontmatterData {
   visibility: 'public' | 'allPrivate' | 'groupPrivate' | 'listPrivate' | 'iPrivate'
   cover_image: string
   translation_link: string
+  linked_post_id: string | null
+  linked_post_title: string
   seo_title: string
   seo_description: string
 }
@@ -63,8 +65,12 @@ export function FrontmatterDrawer({
   const [newTag, setNewTag] = useState('')
   const [creatingCat, setCreatingCat] = useState(false)
   const [creatingTag, setCreatingTag] = useState(false)
+  const [translationSearch, setTranslationSearch] = useState('')
+  const [translationResults, setTranslationResults] = useState<Array<{ id: string; title: string; slug: string; language: string }>>([])
+  const [searchingTranslation, setSearchingTranslation] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const translationSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -144,6 +150,37 @@ export function FrontmatterDrawer({
       ? data.tag_ids.filter((t) => t !== id)
       : [...data.tag_ids, id]
     onChange({ tag_ids: ids })
+  }
+
+  const handleTranslationSearch = (q: string) => {
+    setTranslationSearch(q)
+    if (translationSearchTimer.current) clearTimeout(translationSearchTimer.current)
+    if (!q.trim()) {
+      setTranslationResults([])
+      return
+    }
+    translationSearchTimer.current = setTimeout(async () => {
+      setSearchingTranslation(true)
+      try {
+        const res = await fetch(`/api/posts?search=${encodeURIComponent(q)}`)
+        if (res.ok) {
+          const d = await res.json()
+          setTranslationResults((d.posts ?? []).slice(0, 8))
+        }
+      } finally {
+        setSearchingTranslation(false)
+      }
+    }, 300)
+  }
+
+  const selectTranslation = (p: { id: string; title: string; slug: string; language: string }) => {
+    onChange({ linked_post_id: p.id, linked_post_title: p.title })
+    setTranslationSearch('')
+    setTranslationResults([])
+  }
+
+  const clearTranslation = () => {
+    onChange({ linked_post_id: null, linked_post_title: '' })
   }
 
   // SEO preview character counts
@@ -397,16 +434,51 @@ export function FrontmatterDrawer({
             />
           </div>
 
-          {/* Translation link */}
+          {/* Linked translation */}
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="fm-translation">Translation link (post ID)</label>
-            <input
-              id="fm-translation"
-              className={styles.input}
-              value={data.translation_link}
-              onChange={(e) => onChange({ translation_link: e.target.value })}
-              placeholder="Post ID of the translation"
-            />
+            <label className={styles.label}>Linked translation</label>
+            {data.linked_post_id ? (
+              <div className={styles.linkedPost}>
+                <span className={styles.linkedPostTitle}>{data.linked_post_title || data.linked_post_id}</span>
+                <button
+                  type="button"
+                  className={styles.clearBtn}
+                  onClick={clearTranslation}
+                  aria-label="Remove linked translation"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className={styles.translationSearch}>
+                <input
+                  className={styles.input}
+                  value={translationSearch}
+                  onChange={(e) => handleTranslationSearch(e.target.value)}
+                  placeholder="Search post by title or slug…"
+                  aria-label="Search for translation post"
+                />
+                {searchingTranslation && (
+                  <p className={styles.hint}>Searching…</p>
+                )}
+                {translationResults.length > 0 && (
+                  <ul className={styles.translationDropdown}>
+                    {translationResults.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          className={styles.translationOption}
+                          onClick={() => selectTranslation(p)}
+                        >
+                          <span className={styles.translationLang}>{p.language}</span>
+                          <span>{p.title || p.slug}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
 
           {/* SEO section */}

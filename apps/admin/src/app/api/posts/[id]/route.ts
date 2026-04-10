@@ -7,6 +7,7 @@ import { getDb } from '@/lib/db'
 import { sanitizeMDX } from '@/lib/mdx'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
+import { v4 as uuidv4 } from 'uuid'
 
 function slugify(text: string): string {
   return text
@@ -66,7 +67,15 @@ export async function GET(
       .all(params.id) as Array<{ list_id: string }>
   ).map((r) => r.list_id)
 
-  return NextResponse.json({ post: { ...post, tags, group_ids, list_ids } })
+  // Find linked translation post (same translation_group_id)
+  let linked_post: { id: string; title: string; slug: string; language: string } | null = null
+  if (post.translation_group_id) {
+    linked_post = db
+      .prepare('SELECT id, title, slug, language FROM posts WHERE translation_group_id = ? AND id != ?')
+      .get(post.translation_group_id as string, params.id) as typeof linked_post
+  }
+
+  return NextResponse.json({ post: { ...post, tags, group_ids, list_ids, linked_post } })
 }
 
 const UpdatePostSchema = z.object({
@@ -86,6 +95,7 @@ const UpdatePostSchema = z.object({
   seo_description: z.string().max(500).optional().nullable(),
   publish_date: z.string().optional().nullable(),
   translation_link: z.string().optional().nullable(),
+  linked_post_id: z.string().uuid().optional().nullable(),
 })
 
 export async function PUT(
@@ -149,6 +159,34 @@ export async function PUT(
   if (data.publish_date !== undefined) { updates.push('publish_date = ?'); values.push(data.publish_date) }
   if (data.translation_link !== undefined) { updates.push('translation_link = ?'); values.push(data.translation_link) }
 
+  // Handle translation group linking/unlinking
+  let newTranslationGroupId: string | null | undefined
+  if (data.linked_post_id !== undefined) {
+    if (data.linked_post_id === null) {
+      // Unlink: clear translation_group_id from current post
+      updates.push('translation_group_id = ?')
+      values.push(null)
+      newTranslationGroupId = null
+    } else {
+      // Link: resolve or create a shared translation_group_id
+      const currentPost = db
+        .prepare('SELECT translation_group_id FROM posts WHERE id = ?')
+        .get(params.id) as { translation_group_id: string | null } | undefined
+      const linkedPost = db
+        .prepare('SELECT id, translation_group_id FROM posts WHERE id = ?')
+        .get(data.linked_post_id) as { id: string; translation_group_id: string | null } | undefined
+
+      if (linkedPost) {
+        newTranslationGroupId =
+          currentPost?.translation_group_id ??
+          linkedPost.translation_group_id ??
+          uuidv4()
+        updates.push('translation_group_id = ?')
+        values.push(newTranslationGroupId)
+      }
+    }
+  }
+
   const deleteTags = db.prepare('DELETE FROM post_tags WHERE post_id = ?')
   const insertTag = db.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)')
   const deleteGroupAccess = db.prepare('DELETE FROM post_group_access WHERE post_id = ?')
@@ -158,6 +196,10 @@ export async function PUT(
 
   db.transaction(() => {
     db.prepare(`UPDATE posts SET ${updates.join(', ')} WHERE id = ?`).run(...values, params.id)
+    // Bidirectionally update linked post's translation_group_id
+    if (data.linked_post_id && newTranslationGroupId) {
+      db.prepare('UPDATE posts SET translation_group_id = ? WHERE id = ?').run(newTranslationGroupId, data.linked_post_id)
+    }
     if (data.tag_ids !== undefined) {
       deleteTags.run(params.id)
       for (const tagId of data.tag_ids) {

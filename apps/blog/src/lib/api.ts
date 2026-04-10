@@ -154,6 +154,8 @@ export interface PostDetail {
   seo_description: string | null
   publish_date: string | null
   translation_link: string | null
+  translation_group_id: string | null
+  translation: { slug: string; language: string } | null
   views: number
   like_count: number
   share_count: number

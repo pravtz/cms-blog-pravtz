@@ -31,6 +31,7 @@ export default function NewPostPage() {
         seo_description: data.frontmatter.seo_description || null,
         publish_date: data.frontmatter.publish_date || null,
         translation_link: data.frontmatter.translation_link || null,
+        linked_post_id: data.frontmatter.linked_post_id ?? null,
       }),
     })
 

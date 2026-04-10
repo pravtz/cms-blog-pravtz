@@ -51,16 +51,17 @@ export async function GET(
     )
     .all(post.id as string) as Array<{ name: string; slug: string }>
 
-  // Get translations
+  // Get translations via translation_group_id
   const translations: Array<{ slug: string; language: string }> = []
-  if (post.translation_link) {
-    const linked = db
+  if (post.translation_group_id) {
+    const siblings = db
       .prepare(
         `SELECT slug, language FROM posts
-         WHERE slug = ? AND status = 'published' AND visibility = 'public'`
+         WHERE translation_group_id = ? AND id != ?
+           AND status = 'published' AND visibility = 'public'`
       )
-      .get(post.translation_link as string) as { slug: string; language: string } | undefined
-    if (linked) translations.push(linked)
+      .all(post.translation_group_id as string, post.id as string) as Array<{ slug: string; language: string }>
+    translations.push(...siblings)
   }
 
   // Render MDX to sanitized HTML

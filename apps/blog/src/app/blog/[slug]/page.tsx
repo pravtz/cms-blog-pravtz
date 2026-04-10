@@ -44,16 +44,13 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   const canonical = `${BLOG_URL}/blog/${post.slug}`
 
   const hreflangAlternates: Record<string, string> = {}
-  if (post.language === 'pt-BR') {
-    hreflangAlternates['pt-BR'] = canonical
-    if (post.translation_link) {
-      hreflangAlternates['en'] = post.translation_link
-    }
-  } else if (post.language === 'en') {
-    hreflangAlternates['en'] = canonical
-    if (post.translation_link) {
-      hreflangAlternates['pt-BR'] = post.translation_link
-    }
+  if (post.translation) {
+    const translationUrl = `${BLOG_URL}/blog/${post.translation.slug}`
+    hreflangAlternates[post.language] = canonical
+    hreflangAlternates[post.translation.language] = translationUrl
+    // x-default points to pt-BR version (canonical language)
+    const ptBrUrl = post.language === 'pt-BR' ? canonical : translationUrl
+    hreflangAlternates['x-default'] = ptBrUrl
   }
 
   return {
