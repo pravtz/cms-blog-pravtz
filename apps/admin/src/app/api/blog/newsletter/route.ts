@@ -48,7 +48,12 @@ export async function POST(request: NextRequest) {
       ).run(token, expires, existing.id)
     }
 
-    await sendNewsletterConfirmation(email, token, BLOG_URL)
+    // Get the current unsubscribe token to include in email
+    const currentRow = db
+      .prepare('SELECT unsubscribe_token FROM newsletter_subscribers WHERE id = ?')
+      .get(existing.id) as { unsubscribe_token: string } | undefined
+    const currentUnsubToken = unsubscribeToken ?? currentRow?.unsubscribe_token
+    await sendNewsletterConfirmation(email, token, BLOG_URL, currentUnsubToken)
     return NextResponse.json({ ok: true })
   }
 
@@ -63,6 +68,6 @@ export async function POST(request: NextRequest) {
      VALUES (?, ?, 'pending', ?, ?, ?)`
   ).run(id, email, token, expires, unsubscribeToken)
 
-  await sendNewsletterConfirmation(email, token, BLOG_URL)
+  await sendNewsletterConfirmation(email, token, BLOG_URL, unsubscribeToken)
   return NextResponse.json({ ok: true }, { status: 201 })
 }

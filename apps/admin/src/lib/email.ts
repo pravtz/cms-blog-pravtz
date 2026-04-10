@@ -103,7 +103,8 @@ export async function sendRejectionNotification(
 export async function sendNewsletterConfirmation(
   to: string,
   token: string,
-  blogUrl: string
+  blogUrl: string,
+  unsubscribeToken?: string
 ): Promise<void> {
   const transporter = getTransporter()
   if (!transporter) {
@@ -112,17 +113,27 @@ export async function sendNewsletterConfirmation(
   }
 
   const confirmUrl = `${blogUrl}/newsletter/confirm?token=${token}`
+  const unsubscribeUrl = unsubscribeToken
+    ? `${blogUrl}/newsletter/unsubscribe?token=${unsubscribeToken}`
+    : null
+
+  const unsubscribeLine = unsubscribeUrl
+    ? `\n\nPara cancelar a inscrição: ${unsubscribeUrl}`
+    : ''
+  const unsubscribeHtml = unsubscribeUrl
+    ? `<p style="font-size:12px;color:#888;margin-top:24px;">Não quer mais receber? <a href="${unsubscribeUrl}">Cancelar inscrição</a></p>`
+    : ''
 
   await transporter.sendMail({
     from: getFromAddress(),
     to,
     subject: 'Confirme sua inscrição na newsletter',
-    text: `Obrigado por se inscrever!\n\nClique no link abaixo para confirmar sua inscrição:\n\n${confirmUrl}\n\nEste link expira em 48 horas.\n\nSe você não se inscreveu, pode ignorar este e-mail.`,
+    text: `Obrigado por se inscrever!\n\nClique no link abaixo para confirmar sua inscrição:\n\n${confirmUrl}\n\nEste link expira em 48 horas.\n\nSe você não se inscreveu, pode ignorar este e-mail.${unsubscribeLine}`,
     html: `<p>Obrigado por se inscrever!</p>
 <p>Clique no link abaixo para confirmar sua inscrição na nossa newsletter:</p>
 <p><a href="${confirmUrl}">Confirmar inscrição</a></p>
 <p>Este link expira em 48 horas.</p>
-<p>Se você não se inscreveu, pode ignorar este e-mail.</p>`,
+<p>Se você não se inscreveu, pode ignorar este e-mail.</p>${unsubscribeHtml}`,
   })
 }
 
