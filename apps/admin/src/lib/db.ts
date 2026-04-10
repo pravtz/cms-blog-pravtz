@@ -205,6 +205,50 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);
       CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
     `,
+    '009_comments': `
+      CREATE TABLE IF NOT EXISTS comments (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        parent_id TEXT,
+        author_id TEXT NOT NULL,
+        content TEXT NOT NULL CHECK(length(content) <= 2000),
+        status TEXT NOT NULL DEFAULT 'visible',
+        upvotes INTEGER NOT NULL DEFAULT 0,
+        downvotes INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE,
+        FOREIGN KEY (author_id) REFERENCES users(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS comment_votes (
+        comment_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        vote INTEGER NOT NULL,
+        PRIMARY KEY (comment_id, user_id),
+        FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT,
+        read INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_author ON comments(author_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_status ON comments(status);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read);
+    `,
     '008_visibility_access': `
       CREATE TABLE IF NOT EXISTS access_lists (
         id TEXT PRIMARY KEY,

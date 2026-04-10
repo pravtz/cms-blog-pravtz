@@ -6,7 +6,7 @@ import ArticleHeader from '@/components/ArticleHeader'
 import MDXContent from '@/components/MDXContent'
 import RecommendationSection from '@/components/RecommendationSection'
 import NewsletterCard from '@/components/NewsletterCard'
-import CommentSystemPlaceholder from '@/components/CommentSystemPlaceholder'
+import CommentSystem from '@/components/CommentSystem'
 import RBACBanner from '@/components/RBACBanner'
 import styles from './page.module.css'
 
@@ -157,7 +157,7 @@ export default async function PostPage({ params }: PostPageProps) {
               <NewsletterCard />
             </section>
 
-            <CommentSystemPlaceholder />
+            <CommentSystem postId={post.id} postSlug={post.slug} />
           </div>
         )}
       </main>
