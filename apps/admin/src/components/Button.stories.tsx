@@ -116,3 +116,48 @@ export const AllSizes: Story = {
     </div>
   ),
 }
+
+// --- All Themes ---
+
+const THEMES = [
+  { id: 'onyx',    label: 'Onyx',    bg: '#0f0f0f' },
+  { id: 'emerald', label: 'Emerald', bg: '#0a0f0c' },
+  { id: 'crimson', label: 'Crimson', bg: '#0f0a0a' },
+  { id: 'slate',   label: 'Slate',   bg: '#0d0f14' },
+  { id: 'amber',   label: 'Amber',   bg: '#0f0d08' },
+  { id: 'rose',    label: 'Rose',    bg: '#0f090d' },
+  { id: 'violet',  label: 'Violet',  bg: '#0c0a10' },
+] as const
+
+export const AllThemes: Story = {
+  name: 'All Themes',
+  parameters: {
+    controls: { disable: true },
+    backgrounds: { disable: true },
+  },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+      {THEMES.map(({ id, label, bg }) => (
+        <div
+          key={id}
+          data-theme={id === 'onyx' ? undefined : id}
+          style={{
+            background: bg,
+            padding: '16px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <span style={{ color: '#f2f2f2', fontSize: '0.75rem', width: '56px', flexShrink: 0 }}>
+            {label}
+          </span>
+          <Button variant="primary" size="sm">Primary</Button>
+          <Button variant="secondary" size="sm">Secondary</Button>
+          <Button variant="ghost" size="sm">Ghost</Button>
+          <Button variant="danger" size="sm">Danger</Button>
+        </div>
+      ))}
+    </div>
+  ),
+}

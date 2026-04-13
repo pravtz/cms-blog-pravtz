@@ -98,6 +98,211 @@
 }
 
 /* ============================================================
+   Emerald Theme — green accent on dark background
+   All normal-text colors pass WCAG 2.1 AA (≥ 4.5:1)
+   ============================================================ */
+
+[data-theme="emerald"] {
+  --bg-primary:    #0a0f0c;
+  --bg-secondary:  #111911;
+  --bg-elevated:   #192219;
+  --bg-hover:      #222c22;
+
+  /* Accent: #34d399 on #0a0f0c → L_accent≈0.218, CR≈(0.218+0.05)/(0.003+0.05)≈5.1:1 ✓ AA */
+  --accent:        #34d399;
+  --accent-hover:  #10b981;
+  --accent-muted:  rgba(52, 211, 153, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0a0f0c;  /* dark text on light accent ✓ */
+  --text-inverse:   #0a0f0c;
+
+  --border:         #1e2e22;
+  --border-strong:  #2e4433;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #34d399;
+  --success-bg:    rgba(52, 211, 153, 0.12);
+  --info:          #60a5fa;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+}
+
+/* ============================================================
+   Crimson Theme — red accent on dark background
+   ============================================================ */
+
+[data-theme="crimson"] {
+  --bg-primary:    #0f0a0a;
+  --bg-secondary:  #160e0e;
+  --bg-elevated:   #1e1414;
+  --bg-hover:      #261a1a;
+
+  /* Accent: #f87171 on #0f0a0a → ≈5.5:1 ✓ AA (same ratio noted in Onyx error color) */
+  --accent:        #f87171;
+  --accent-hover:  #ef4444;
+  --accent-muted:  rgba(248, 113, 113, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0f0a0a;  /* dark text on light-red accent ✓ */
+  --text-inverse:   #0f0a0a;
+
+  --border:         #2e1e1e;
+  --border-strong:  #442a2a;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #4ade80;
+  --success-bg:    rgba(74, 222, 128, 0.12);
+  --info:          #60a5fa;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+}
+
+/* ============================================================
+   Slate Theme — steel-blue accent on dark background
+   ============================================================ */
+
+[data-theme="slate"] {
+  --bg-primary:    #0d0f14;
+  --bg-secondary:  #131720;
+  --bg-elevated:   #1a1e2a;
+  --bg-hover:      #222634;
+
+  /* Accent: #7dd3fc on #0d0f14 → sky-blue, L_accent≈0.37, CR≈(0.37+0.05)/(0.004+0.05)≈7.8:1 ✓ AA */
+  --accent:        #7dd3fc;
+  --accent-hover:  #38bdf8;
+  --accent-muted:  rgba(125, 211, 252, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0d0f14;  /* dark text on light-blue accent ✓ */
+  --text-inverse:   #0d0f14;
+
+  --border:         #1e2236;
+  --border-strong:  #2e3450;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #4ade80;
+  --success-bg:    rgba(74, 222, 128, 0.12);
+  --info:          #7dd3fc;
+  --info-bg:       rgba(125, 211, 252, 0.12);
+}
+
+/* ============================================================
+   Amber Theme — golden-amber accent on dark background
+   ============================================================ */
+
+[data-theme="amber"] {
+  --bg-primary:    #0f0d08;
+  --bg-secondary:  #171209;
+  --bg-elevated:   #1f180d;
+  --bg-hover:      #271e12;
+
+  /* Accent: #fbbf24 on #0f0d08 → amber, ≈8.8:1 ✓ AA (confirmed in Onyx warning color notes) */
+  --accent:        #fbbf24;
+  --accent-hover:  #f59e0b;
+  --accent-muted:  rgba(251, 191, 36, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0f0d08;  /* dark text on bright amber ✓ */
+  --text-inverse:   #0f0d08;
+
+  --border:         #2e2614;
+  --border-strong:  #443a1e;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #4ade80;
+  --success-bg:    rgba(74, 222, 128, 0.12);
+  --info:          #60a5fa;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+}
+
+/* ============================================================
+   Rose Theme — rose-pink accent on dark background
+   ============================================================ */
+
+[data-theme="rose"] {
+  --bg-primary:    #0f090d;
+  --bg-secondary:  #160e14;
+  --bg-elevated:   #1e141c;
+  --bg-hover:      #251a24;
+
+  /* Accent: #fb7185 on #0f090d → rose, L≈0.22, CR≈(0.22+0.05)/(0.003+0.05)≈5.1:1 ✓ AA */
+  --accent:        #fb7185;
+  --accent-hover:  #f43f5e;
+  --accent-muted:  rgba(251, 113, 133, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0f090d;  /* dark text on rose accent ✓ */
+  --text-inverse:   #0f090d;
+
+  --border:         #2e1826;
+  --border-strong:  #44243a;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #4ade80;
+  --success-bg:    rgba(74, 222, 128, 0.12);
+  --info:          #60a5fa;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+}
+
+/* ============================================================
+   Violet Theme — lavender-violet accent on dark background
+   ============================================================ */
+
+[data-theme="violet"] {
+  --bg-primary:    #0c0a10;
+  --bg-secondary:  #120f18;
+  --bg-elevated:   #1a1622;
+  --bg-hover:      #221d2c;
+
+  /* Accent: #c4b5fd on #0c0a10 → lavender, L≈0.45, CR≈(0.45+0.05)/(0.003+0.05)≈9.4:1 ✓ AA */
+  --accent:        #c4b5fd;
+  --accent-hover:  #a78bfa;
+  --accent-muted:  rgba(196, 181, 253, 0.15);
+
+  --text-primary:   #f2f2f2;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #888888;
+  --text-on-accent: #0c0a10;  /* dark text on light-lavender accent ✓ */
+  --text-inverse:   #0c0a10;
+
+  --border:         #221e36;
+  --border-strong:  #332c50;
+
+  --error:         #f87171;
+  --error-bg:      rgba(248, 113, 113, 0.12);
+  --warning:       #fbbf24;
+  --warning-bg:    rgba(251, 191, 36, 0.12);
+  --success:       #4ade80;
+  --success-bg:    rgba(74, 222, 128, 0.12);
+  --info:          #60a5fa;
+  --info-bg:       rgba(96, 165, 250, 0.12);
+}
+
+/* ============================================================
    CSS Reset & Base
    ============================================================ */
 

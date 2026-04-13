@@ -99,3 +99,35 @@ export const AllStates: Story = {
     </div>
   ),
 }
+
+// --- All Themes ---
+
+const THEMES = [
+  { id: 'onyx',    label: 'Onyx',    bg: '#0f0f0f' },
+  { id: 'emerald', label: 'Emerald', bg: '#0a0f0c' },
+  { id: 'crimson', label: 'Crimson', bg: '#0f0a0a' },
+  { id: 'slate',   label: 'Slate',   bg: '#0d0f14' },
+  { id: 'amber',   label: 'Amber',   bg: '#0f0d08' },
+  { id: 'rose',    label: 'Rose',    bg: '#0f090d' },
+  { id: 'violet',  label: 'Violet',  bg: '#0c0a10' },
+] as const
+
+export const AllThemes: Story = {
+  name: 'All Themes',
+  parameters: { controls: { disable: true }, backgrounds: { disable: true } },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {THEMES.map(({ id, label, bg }) => (
+        <div
+          key={id}
+          data-theme={id === 'onyx' ? undefined : id}
+          style={{ background: bg, padding: '16px 24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}
+        >
+          <span style={{ color: '#f2f2f2', fontSize: '0.75rem', width: '56px', flexShrink: 0, paddingTop: '28px' }}>{label}</span>
+          <Input label="Default" placeholder="Placeholder…" style={{ width: '180px' }} />
+          <Input label="With error" error="Required" placeholder="Placeholder…" style={{ width: '180px' }} />
+        </div>
+      ))}
+    </div>
+  ),
+}

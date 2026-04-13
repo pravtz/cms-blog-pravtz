@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: 'Self-hosted editorial CMS',
 }
 
+// Inline script run before first paint to apply saved theme
+const themeScript = `(function(){try{var t=localStorage.getItem('nexus-theme');if(t&&t!=='onyx')document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`
+
 export default function RootLayout({
   children,
 }: {
@@ -27,6 +30,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${newsreader.variable}`}>
+      {/* eslint-disable-next-line react/no-danger */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>{children}</body>
     </html>
   )

@@ -130,3 +130,45 @@ export const Persistent: Story = {
     </ToastProvider>
   ),
 }
+
+// --- All Themes ---
+
+const THEMES = [
+  { id: 'onyx',    label: 'Onyx',    bg: '#0f0f0f' },
+  { id: 'emerald', label: 'Emerald', bg: '#0a0f0c' },
+  { id: 'crimson', label: 'Crimson', bg: '#0f0a0a' },
+  { id: 'slate',   label: 'Slate',   bg: '#0d0f14' },
+  { id: 'amber',   label: 'Amber',   bg: '#0f0d08' },
+  { id: 'rose',    label: 'Rose',    bg: '#0f090d' },
+  { id: 'violet',  label: 'Violet',  bg: '#0c0a10' },
+] as const
+
+function ThemeToastTriggers({ themeId, label, bg }: { themeId: string; label: string; bg: string }) {
+  const { toast } = useToast()
+  return (
+    <div
+      data-theme={themeId === 'onyx' ? undefined : themeId}
+      style={{ background: bg, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+    >
+      <span style={{ color: '#f2f2f2', fontSize: '0.75rem', width: '56px', flexShrink: 0 }}>{label}</span>
+      <Button variant="primary" size="sm" onClick={() => toast({ variant: 'success', title: `${label} success` })}>Success</Button>
+      <Button variant="secondary" size="sm" onClick={() => toast({ variant: 'error', title: `${label} error` })}>Error</Button>
+      <Button variant="ghost" size="sm" onClick={() => toast({ variant: 'warning', title: `${label} warning` })}>Warning</Button>
+      <Button variant="ghost" size="sm" onClick={() => toast({ variant: 'info', title: `${label} info` })}>Info</Button>
+    </div>
+  )
+}
+
+export const AllThemes: Story = {
+  name: 'All Themes',
+  parameters: { controls: { disable: true }, backgrounds: { disable: true } },
+  render: () => (
+    <ToastProvider>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: '600px' }}>
+        {THEMES.map(({ id, label, bg }) => (
+          <ThemeToastTriggers key={id} themeId={id} label={label} bg={bg} />
+        ))}
+      </div>
+    </ToastProvider>
+  ),
+}
