@@ -234,7 +234,7 @@
       "priority": 26,
       "version": "v0.3",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Build Social Cards Generator in admin panel. Select existing post or enter data manually. Formats: Instagram 1:1 (1080×1080), Stories 9:16 (1080×1920), LinkedIn 1.91:1 (1200×627), Twitter/X 2:1 (1200×600). Real-time preview with Design System applied. Editable fields: title, subtitle, author, logo, background image. Export as high-res PNG."
     },
     {

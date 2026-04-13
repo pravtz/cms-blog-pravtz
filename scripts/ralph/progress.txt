@@ -539,3 +539,27 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Storybook global types + toolbar + decorator pattern works well for switching themes in stories without changing individual story code
   - Dark-on-light accent buttons need `--text-on-accent: <dark>` — bright/pastel accent colors (amber, emerald, slate, violet, rose, crimson) all need dark text
 ---
+
+## 2026-04-13 - US-26
+- Implemented Social Cards Generator at `/admin/social-cards`
+- Canvas-based real-time card rendering using the HTML5 Canvas 2D API — no external library needed
+- Four formats: Instagram 1:1 (1080×1080), Stories 9:16 (1080×1920), LinkedIn 1.91:1 (1200×627), Twitter/X 2:1 (1200×600)
+- Two input modes: "From Post" (search existing posts, auto-populates fields) and "Manual Entry"
+- Editable card fields: title, subtitle, author, background image URL, logo image URL
+- Real-time preview: canvas re-renders on any field change (debounced 50ms)
+- Design System applied: uses Newsreader for title, Inter for body, `--accent` (#6366f1) for accent bar + line, dark gradient overlay
+- Export: `canvas.toDataURL('image/png', 1.0)` at full resolution (e.g. 1080×1080) downloaded as PNG
+- Post search uses existing `/api/posts?search=...` endpoint; auto-fills title, subtitle, author, cover_image
+- Added "Social Cards" nav item to DynamicSidebar
+- Files changed:
+  - `apps/admin/src/app/admin/social-cards/page.tsx` (new) — main UI page
+  - `apps/admin/src/app/admin/social-cards/page.module.css` (new) — styles
+  - `apps/admin/src/app/admin/social-cards/SocialCardCanvas.tsx` (new) — canvas drawing logic
+  - `apps/admin/src/components/AdminLayout/DynamicSidebar.tsx` — added Social Cards nav item
+- **Learnings for future iterations:**
+  - Canvas export via `canvas.toDataURL('image/png', 1.0)` works at the canvas's native resolution; scaling via CSS does not affect export quality
+  - Use `dynamic(() => import('./SocialCardCanvas'), { ssr: false })` to avoid SSR issues with Canvas API
+  - `img.crossOrigin = 'anonymous'` must be set before `img.src` for CORS images; drawImage will fail silently with tainted canvas if not set
+  - `wrapText()` helper for multi-line text on canvas: measure width per word, break when exceeding maxWidth
+  - Canvas ref must be passed down to the drawing component — use `React.RefObject<HTMLCanvasElement | null>` (not HTMLCanvasElement) to match React 19 typing
+---
