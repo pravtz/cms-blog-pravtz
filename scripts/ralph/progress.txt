@@ -490,3 +490,33 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `translation_link` (old free-text field) is kept in schema but superseded by `translation_group_id`; don't remove it for backward compat.
   - x-default hreflang convention: points to the "primary" language version (pt-BR in this project).
 ---
+
+## 2026-04-13 - US-24
+- Implemented post scheduling: status=scheduled when publish_date is in the future; cron job auto-publishes at scheduled time
+- Implemented version history: snapshot on each publish/schedule/manual save; version list UI with diff view and restore
+- Files changed:
+  - `apps/admin/src/lib/scheduler.ts` (new) - setInterval-based cron that publishes scheduled posts every 60s
+  - `apps/admin/src/instrumentation.ts` (new) - Next.js instrumentation hook to start scheduler on server boot
+  - `apps/admin/next.config.js` - added `instrumentationHook: true` to experimental
+  - `apps/admin/src/lib/db.ts` - added migration `013_post_versions`, `createVersionSnapshot()` helper
+  - `apps/admin/src/__tests__/helpers/db.ts` - added `013_post_versions` migration to test DB
+  - `apps/admin/src/lib/audit.ts` - added `'post.restored'` to AuditAction type
+  - `apps/admin/src/app/api/posts/[id]/route.ts` - status=scheduled snapshot support already in place
+  - `apps/admin/src/app/api/posts/route.ts` - added `publish_date` to GET list response
+  - `apps/admin/src/app/api/posts/[id]/versions/route.ts` (new) - GET list versions
+  - `apps/admin/src/app/api/posts/[id]/versions/[versionId]/route.ts` (new) - GET version detail
+  - `apps/admin/src/app/api/posts/[id]/versions/[versionId]/restore/route.ts` (new) - POST restore
+  - `apps/admin/src/app/admin/posts/[id]/versions/page.tsx` (new) - version history UI with diff view
+  - `apps/admin/src/app/admin/posts/[id]/versions/page.module.css` (new) - styles
+  - `apps/admin/src/components/Editor/MDXEditor.tsx` - added status field to PostData, publish/schedule/unpublish buttons, History link
+  - `apps/admin/src/components/Editor/MDXEditor.module.css` - styles for publish/unpublish/history buttons
+  - `apps/admin/src/app/admin/posts/[id]/edit/page.tsx` - load and pass status field
+  - `apps/admin/src/app/admin/posts/new/page.tsx` - pass status from PostData (not hardcoded 'draft')
+  - `apps/admin/src/app/admin/posts/page.tsx` - add publish_date to Post type, countdown for scheduled posts
+  - `apps/admin/src/app/admin/posts/page.module.css` - countdown style
+- **Learnings for future iterations:**
+  - Next.js `instrumentation.ts` at `src/instrumentation.ts` starts server-side code once; gate with `process.env.NEXT_RUNTIME === 'nodejs'` to avoid edge runtime issues; requires `experimental.instrumentationHook: true` in `next.config.js`
+  - `AuditAction` union type in `audit.ts` — always add new action strings there when adding new audit log entries
+  - `PostData.status` is now part of the interface; MDXEditor derives publish vs schedule from comparing `publish_date` to `Date.now()`
+  - Version diff uses a simple greedy LCS algorithm (look-ahead of 3 lines) — sufficient for editorial diffs
+---

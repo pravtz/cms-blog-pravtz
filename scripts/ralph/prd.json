@@ -216,7 +216,7 @@
       "priority": 24,
       "version": "v0.3",
       "prd": "PRD-06",
-      "passes": false,
+      "passes": true,
       "description": "Post scheduling: FrontmatterDrawer date accepts future dates; status=scheduled; cron job publishes at scheduled time. Admin panel: scheduled posts list with countdown. Version history: snapshot on each publish or manual save. Version list UI: date, author, change summary. Diff view between versions. Restore previous version. Max 50 versions per post (purge oldest)."
     },
     {
