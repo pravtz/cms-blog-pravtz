@@ -243,7 +243,7 @@
       "priority": 27,
       "version": "v0.3",
       "prd": "PRD-11",
-      "passes": false,
+      "passes": true,
       "description": "Playwright E2E: logged-in user comments on public post and comment appears. Non-logged user sees 'Login to comment' button. User upvotes a comment and count increments. User fills email+checkbox, clicks subscribe, sees 'Check your email'. Confirmation link shows 'Subscription confirmed'. User likes a post and heart fills. Share dropdown opens and copy-link works. All tests use MailHog + PostgreSQL container."
     },
     {

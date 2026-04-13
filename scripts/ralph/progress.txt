@@ -563,3 +563,32 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `wrapText()` helper for multi-line text on canvas: measure width per word, break when exceeding maxWidth
   - Canvas ref must be passed down to the drawing component — use `React.RefObject<HTMLCanvasElement | null>` (not HTMLCanvasElement) to match React 19 typing
 ---
+
+## 2026-04-13 - US-27
+- Implemented Playwright E2E tests for comments, likes, sharing, and newsletter flows
+- Added test infrastructure:
+  - `GET /api/test/newsletter-token?email=...` — test endpoint to retrieve newsletter confirmation token
+  - Updated `POST /api/test/reset` to also delete comments, comment_votes, post_likes, post_shares, notifications, post_versions tables
+  - Added `getNewsletterToken()` helper to `apps/e2e/fixtures/helpers.ts`
+- Test scenarios covered:
+  - Anonymous visitor sees login prompt in comment section (no comment form)
+  - Logged-in owner can post a comment and it appears in the list
+  - Logged-in owner can upvote a comment and count increments (aria-pressed=true)
+  - Newsletter subscribe form shows "Verifique seu e-mail!" after submission
+  - Newsletter confirmation link shows "Inscrição confirmada!" (token from test API)
+  - Logged-in user likes a post (aria-pressed transitions false → true)
+  - Anonymous click on like button shows "Login to like" tooltip
+  - Share dropdown opens on button click showing menu items
+  - Copy-link shows "Link copiado!" tooltip after click (with clipboard permissions)
+- Files changed:
+  - `apps/e2e/tests/05-comments-likes-sharing-newsletter.spec.ts` (new)
+  - `apps/e2e/fixtures/helpers.ts` — added `getNewsletterToken()`
+  - `apps/admin/src/app/api/test/newsletter-token/route.ts` (new)
+  - `apps/admin/src/app/api/test/reset/route.ts` — extended to delete new engagement tables
+- **Learnings for future iterations:**
+  - Blog components (CommentSystem, LikeButton, ShareButton) detect auth via `fetch(ADMIN_URL/api/auth/session, { credentials: 'include' })` — they use the httpOnly refreshToken cookie, NOT localStorage. Login via admin UI to set the cookie before navigating to blog.
+  - `loginViaUI()` sets the refreshToken cookie on localhost:3901 browser context; this cookie is sent to localhost:3901 even when fetched from localhost:3900 because they're same-site (both localhost, SameSite=Strict allows this).
+  - Test reset must include all engagement tables: comment_votes → comments → post_likes → post_shares → notifications → post_versions (before posts).
+  - Newsletter token is stored in `newsletter_subscribers.token` and cleared to NULL after confirmation — retrieve before visiting confirm URL.
+  - For clipboard tests, use `context.grantPermissions(['clipboard-read', 'clipboard-write'])` to avoid Permissions API denial.
+---
