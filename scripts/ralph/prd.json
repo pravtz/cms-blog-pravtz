@@ -225,7 +225,7 @@
       "priority": 25,
       "version": "v0.3",
       "prd": "PRD-01",
-      "passes": false,
+      "passes": true,
       "description": "Implement the remaining 6 themes: Emerald, Crimson, Slate, Amber, Rose, Violet. Each follows the same CSS token structure as Onyx. All must pass WCAG 2.1 AA contrast (4.5:1 for normal text, 3:1 for large text and UI components). Theme selector in admin settings. Storybook: stories for all themes on each component."
     },
     {

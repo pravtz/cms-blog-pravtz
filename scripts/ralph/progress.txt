@@ -520,3 +520,22 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `PostData.status` is now part of the interface; MDXEditor derives publish vs schedule from comparing `publish_date` to `Date.now()`
   - Version diff uses a simple greedy LCS algorithm (look-ahead of 3 lines) — sufficient for editorial diffs
 ---
+
+## 2026-04-13 - US-25
+- Implemented 6 additional color themes: Emerald, Crimson, Slate, Amber, Rose, Violet
+- Each theme follows the Onyx CSS token structure using `[data-theme="<name>"]` attribute selectors on `:root` equivalent — overrides accent, bg-*, border-*, and text-on-accent; keeps typography/spacing unchanged
+- All themes use dark backgrounds with bright accents; all accent colors verified ≥4.5:1 WCAG AA contrast against their bg-primary
+- Light accents (emerald, crimson, slate, amber, rose, violet) use `--text-on-accent: <dark bg color>` (dark text on light accent buttons) to maintain contrast
+- Created `useTheme` hook at `apps/admin/src/lib/useTheme.ts`: reads/writes localStorage key `nexus-theme`, applies `data-theme` to `<html>` element
+- Added inline script to `apps/admin/src/app/layout.tsx` to apply saved theme before first paint (prevents FOUC)
+- Created admin Settings page at `apps/admin/src/app/admin/settings/` with theme swatch grid
+- Added Settings nav item to DynamicSidebar (with gear icon)
+- Updated Storybook preview.ts: global theme toolbar with all 7 themes; decorator applies `data-theme` to `<html>` on story change
+- Added `AllThemes` story to Button, Badge, Card, Input, Toast — each renders all 7 themes with themed rows
+- Files changed: apps/admin/src/app/globals.css, apps/admin/src/lib/useTheme.ts, apps/admin/src/app/layout.tsx, apps/admin/src/app/admin/settings/page.tsx (+css), apps/admin/src/components/AdminLayout/DynamicSidebar.tsx, apps/admin/.storybook/preview.ts, Button/Badge/Card/Input/Toast .stories.tsx
+- **Learnings for future iterations:**
+  - Theme tokens go in `globals.css` as `[data-theme="name"] { ... }` attribute selectors — CSS specificity equals `:root` so they override cleanly
+  - Inline script before `<body>` is needed to avoid flash-of-wrong-theme when reading from localStorage
+  - Storybook global types + toolbar + decorator pattern works well for switching themes in stories without changing individual story code
+  - Dark-on-light accent buttons need `--text-on-accent: <dark>` — bright/pastel accent colors (amber, emerald, slate, violet, rose, crimson) all need dark text
+---
