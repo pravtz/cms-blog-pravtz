@@ -592,3 +592,41 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Newsletter token is stored in `newsletter_subscribers.token` and cleared to NULL after confirmation — retrieve before visiting confirm URL.
   - For clipboard tests, use `context.grantPermissions(['clipboard-read', 'clipboard-write'])` to avoid Permissions API denial.
 ---
+
+## 2026-04-13 - US-28
+- Implemented notification integrations for Teams, Slack, Discord, and email (SMTP)
+- Created `apps/admin/src/lib/channel-notifications.ts` — central dispatch service:
+  - Events: `new_pending_user`, `new_comment`, `suspicious_login`, `post_published`, `critical_system_error`
+  - Per-channel settings stored as JSON in `settings` table under key `notification_channel_config`
+  - Teams: Adaptive Cards format; Slack: Block Kit; Discord: plain content; Email: SMTP via existing nodemailer
+  - `dispatchChannelNotification()` is non-blocking (errors are caught, never thrown)
+- Created API routes:
+  - `GET/POST /api/admin/notification-settings` — fetch/update channel config (owner only for writes)
+  - `POST /api/admin/notification-settings/test` — send test notification to a specific channel
+- Extended Settings page (`/admin/settings`) with full Notifications section:
+  - Toggle per channel (Teams, Slack, Discord, Email)
+  - Webhook URL input for webhook channels
+  - Event checkboxes per channel
+  - "Test" button per channel (calls test API)
+  - Save button persists to DB via API
+- Hooked notifications into system events:
+  - `confirm-email/route.ts` → `new_pending_user` when user confirms email
+  - `auth/login/route.ts` → `suspicious_login` when IP is blocked
+  - `blog/comments/route.ts` → `new_comment` on new top-level comment
+  - `posts/[id]/route.ts` → `post_published` when post status becomes 'published'
+- Files changed:
+  - `apps/admin/src/lib/channel-notifications.ts` (new)
+  - `apps/admin/src/app/api/admin/notification-settings/route.ts` (new)
+  - `apps/admin/src/app/api/admin/notification-settings/test/route.ts` (new)
+  - `apps/admin/src/app/admin/settings/page.tsx` — added full Notifications section
+  - `apps/admin/src/app/admin/settings/page.module.css` — added channel card styles
+  - `apps/admin/src/app/api/auth/confirm-email/route.ts` — dispatches `new_pending_user`
+  - `apps/admin/src/app/api/auth/login/route.ts` — dispatches `suspicious_login`
+  - `apps/admin/src/app/api/blog/comments/route.ts` — dispatches `new_comment`
+  - `apps/admin/src/app/api/posts/[id]/route.ts` — dispatches `post_published`
+- **Learnings for future iterations:**
+  - Notification settings are stored as a single JSON blob in the `settings` KV table (key: `notification_channel_config`) — no new DB migration needed.
+  - `dispatchChannelNotification()` must always be called with `.catch(() => {})` and never awaited in critical paths — it's fire-and-forget.
+  - Teams webhook format uses Adaptive Cards (not legacy MessageCard); Slack uses Block Kit; Discord uses `{ content: string }`.
+  - The settings page is `'use client'` — all DB access goes through API routes, not direct imports.
+---

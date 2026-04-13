@@ -252,7 +252,7 @@
       "priority": 28,
       "version": "v0.4",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Admin panel Notifications settings: enable/configure each channel individually (Teams webhook URL, Slack webhook URL, Discord webhook URL, SMTP). Configurable events per channel: new pending user, new comment, suspicious login, post published, critical system error. Test send button on configure. Trigger notifications from corresponding system events."
     },
     {
