@@ -28,6 +28,23 @@ export async function getEmailToken(
   return data.email_token as string
 }
 
+export async function getNewsletterToken(
+  request: APIRequestContext,
+  email: string
+): Promise<string> {
+  const res = await request.get(
+    `${ADMIN_URL}/api/test/newsletter-token?email=${encodeURIComponent(email)}`
+  )
+  if (!res.ok()) {
+    throw new Error(`Failed to get newsletter token for ${email}: ${await res.text()}`)
+  }
+  const data = await res.json()
+  if (!data.token) {
+    throw new Error(`No newsletter token found for ${email} (status: ${data.status})`)
+  }
+  return data.token as string
+}
+
 // ── Setup helpers ────────────────────────────────────────────────────────────
 
 export const TEST_OWNER = {

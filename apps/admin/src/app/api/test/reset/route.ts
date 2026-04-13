@@ -18,6 +18,12 @@ export async function POST() {
 
   // Delete all data in the correct order (foreign keys enabled)
   db.transaction(() => {
+    db.prepare('DELETE FROM comment_votes').run()
+    db.prepare('DELETE FROM comments').run()
+    db.prepare('DELETE FROM post_likes').run()
+    db.prepare('DELETE FROM post_shares').run()
+    db.prepare('DELETE FROM notifications').run()
+    db.prepare('DELETE FROM post_versions').run()
     db.prepare('DELETE FROM post_tags').run()
     db.prepare('DELETE FROM post_list_access').run()
     db.prepare('DELETE FROM post_group_access').run()
