@@ -15,6 +15,7 @@ interface Post {
   author_name: string
   reading_time: number | null
   updated_at: string
+  publish_date: string | null
   has_translation: number
 }
 
@@ -45,6 +46,17 @@ function formatDate(dateStr: string): string {
     month: 'short',
     day: 'numeric',
   })
+}
+
+function formatCountdown(publishDate: string): string {
+  const diff = new Date(publishDate).getTime() - Date.now()
+  if (diff <= 0) return 'Publishing soon…'
+  const days = Math.floor(diff / 86_400_000)
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000)
+  const mins = Math.floor((diff % 3_600_000) / 60_000)
+  if (days > 0) return `in ${days}d ${hours}h`
+  if (hours > 0) return `in ${hours}h ${mins}m`
+  return `in ${mins}m`
 }
 
 export default function PostsPage() {
@@ -181,6 +193,11 @@ export default function PostsPage() {
                     <span className={`${styles.statusBadge} ${styles[`status_${post.status}`]}`}>
                       {STATUS_LABELS[post.status] ?? post.status}
                     </span>
+                    {post.status === 'scheduled' && post.publish_date && (
+                      <span className={styles.countdown} title={new Date(post.publish_date).toLocaleString()}>
+                        {formatCountdown(post.publish_date)}
+                      </span>
+                    )}
                   </td>
                   <td>
                     <span className={styles.langBadge}>

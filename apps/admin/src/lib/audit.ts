@@ -13,6 +13,7 @@ export type AuditAction =
   | 'post.published'
   | 'post.edited'
   | 'post.deleted'
+  | 'post.restored'
   | 'group.created'
   | 'group.updated'
   | 'group.deleted'

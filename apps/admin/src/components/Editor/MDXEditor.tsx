@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
 import { oneDark } from '@codemirror/theme-one-dark'
@@ -14,11 +15,12 @@ export interface PostData {
   id?: string
   content: string
   frontmatter: FrontmatterData
+  status?: 'draft' | 'published' | 'scheduled'
 }
 
 interface MDXEditorProps {
   initialData?: Partial<PostData>
-  onSave?: (data: PostData) => Promise<{ id: string } | undefined>
+  onSave?: (data: PostData, options?: { createSnapshot?: boolean }) => Promise<{ id: string } | undefined>
 }
 
 type ViewMode = 'split' | 'editor' | 'preview'
@@ -50,10 +52,14 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     ...initialData?.frontmatter,
   })
   const [postId, setPostId] = useState<string | undefined>(initialData?.id)
+  const [postStatus, setPostStatus] = useState<'draft' | 'published' | 'scheduled'>(
+    initialData?.status ?? 'draft'
+  )
   const [viewMode, setViewMode] = useState<ViewMode>('split')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [isDirty, setIsDirty] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   const editorRef = useRef<ReactCodeMirrorRef>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -70,16 +76,17 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
       id: postId,
       content,
       frontmatter,
+      status: postStatus,
     }),
-    [postId, content, frontmatter]
+    [postId, content, frontmatter, postStatus]
   )
 
   const save = useCallback(
-    async (data: PostData) => {
+    async (data: PostData, options?: { createSnapshot?: boolean }) => {
       if (!onSave) return
       setSaveStatus('saving')
       try {
-        const result = await onSave(data)
+        const result = await onSave(data, options)
         if (result?.id && !postId) {
           setPostId(result.id)
           // Update URL without reload
@@ -100,7 +107,7 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        save(getCurrentData())
+        save(getCurrentData(), { createSnapshot: true })
       }
     }
     window.addEventListener('keydown', handler)
@@ -145,7 +152,42 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
   }
 
   const handleManualSave = () => {
-    save(getCurrentData())
+    save(getCurrentData(), { createSnapshot: true })
+  }
+
+  const handlePublish = async () => {
+    if (!onSave) return
+    const isFuture =
+      frontmatter.publish_date !== '' &&
+      new Date(frontmatter.publish_date).getTime() > Date.now()
+    const newStatus: 'published' | 'scheduled' = isFuture ? 'scheduled' : 'published'
+    setPublishing(true)
+    try {
+      const data: PostData = { id: postId, content, frontmatter, status: newStatus }
+      await onSave(data, { createSnapshot: true })
+      setPostStatus(newStatus)
+      lastSavedRef.current = JSON.stringify({ content, frontmatter })
+      setSaveStatus('saved')
+      setIsDirty(false)
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const handleUnpublish = async () => {
+    if (!onSave) return
+    setPublishing(true)
+    try {
+      const data: PostData = { id: postId, content, frontmatter, status: 'draft' }
+      await onSave(data)
+      setPostStatus('draft')
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      setPublishing(false)
+    }
   }
 
   const saveStatusLabel: Record<SaveStatus, string> = {
@@ -216,6 +258,41 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
           >
             Save
           </button>
+
+          {postStatus === 'published' || postStatus === 'scheduled' ? (
+            <button
+              type="button"
+              className={`${styles.saveBtn} ${styles.unpublishBtn}`}
+              onClick={handleUnpublish}
+              disabled={publishing}
+            >
+              Unpublish
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`${styles.saveBtn} ${styles.publishBtn}`}
+              onClick={handlePublish}
+              disabled={publishing}
+            >
+              {publishing
+                ? 'Publishing…'
+                : frontmatter.publish_date !== '' &&
+                  new Date(frontmatter.publish_date).getTime() > Date.now()
+                ? 'Schedule'
+                : 'Publish'}
+            </button>
+          )}
+
+          {postId && (
+            <Link
+              href={`/admin/posts/${postId}/versions`}
+              className={styles.historyLink}
+              title="View version history"
+            >
+              History
+            </Link>
+          )}
         </div>
       </div>
 

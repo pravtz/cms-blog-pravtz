@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
-import { getDb } from '@/lib/db'
+import { getDb, createVersionSnapshot } from '@/lib/db'
 import { sanitizeMDX } from '@/lib/mdx'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
@@ -96,6 +96,7 @@ const UpdatePostSchema = z.object({
   publish_date: z.string().optional().nullable(),
   translation_link: z.string().optional().nullable(),
   linked_post_id: z.string().uuid().optional().nullable(),
+  createSnapshot: z.boolean().optional().default(false),
 })
 
 export async function PUT(
@@ -219,6 +220,22 @@ export async function PUT(
       }
     }
   })()
+
+  // Create version snapshot when publishing, scheduling, or on explicit manual save
+  const shouldSnapshot =
+    data.status === 'published' ||
+    data.status === 'scheduled' ||
+    data.createSnapshot === true
+  if (shouldSnapshot) {
+    let summary = 'Manual save'
+    if (data.status === 'published') summary = 'Published'
+    else if (data.status === 'scheduled') summary = 'Scheduled for publishing'
+    try {
+      createVersionSnapshot(params.id, payload.sub, summary)
+    } catch {
+      // Non-fatal
+    }
+  }
 
   const auditAction = data.status === 'published' ? 'post.published' : 'post.edited'
   logAudit({

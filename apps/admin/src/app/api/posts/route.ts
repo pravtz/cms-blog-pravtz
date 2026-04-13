@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
   const posts = db.prepare(`
     SELECT p.id, p.title, p.slug, p.status, p.visibility, p.language,
-      p.reading_time, p.updated_at, p.translation_group_id,
+      p.reading_time, p.updated_at, p.publish_date, p.translation_group_id,
       u.name as author_name, c.name as category_name,
       CASE WHEN p.translation_group_id IS NOT NULL THEN 1 ELSE 0 END as has_translation
     FROM posts p

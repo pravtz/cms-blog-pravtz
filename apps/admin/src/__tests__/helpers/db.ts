@@ -239,6 +239,32 @@ function runMigrations(database: Database.Database): void {
       ALTER TABLE posts ADD COLUMN translation_group_id TEXT;
       CREATE INDEX IF NOT EXISTS idx_posts_translation_group ON posts(translation_group_id);
     `,
+    '013_post_versions': `
+      CREATE TABLE IF NOT EXISTS post_versions (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        version_number INTEGER NOT NULL,
+        title TEXT,
+        subtitle TEXT,
+        excerpt TEXT,
+        content TEXT,
+        status TEXT,
+        visibility TEXT,
+        language TEXT,
+        category_id TEXT,
+        cover_image TEXT,
+        seo_title TEXT,
+        seo_description TEXT,
+        publish_date TEXT,
+        change_summary TEXT,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_post_versions_post ON post_versions(post_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_post_versions_post_ver ON post_versions(post_id, version_number);
+    `,
   }
 
   const applied = database

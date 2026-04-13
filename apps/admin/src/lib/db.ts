@@ -317,6 +317,32 @@ function runMigrations(database: Database.Database): void {
       ALTER TABLE posts ADD COLUMN translation_group_id TEXT;
       CREATE INDEX IF NOT EXISTS idx_posts_translation_group ON posts(translation_group_id);
     `,
+    '013_post_versions': `
+      CREATE TABLE IF NOT EXISTS post_versions (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        version_number INTEGER NOT NULL,
+        title TEXT,
+        subtitle TEXT,
+        excerpt TEXT,
+        content TEXT,
+        status TEXT,
+        visibility TEXT,
+        language TEXT,
+        category_id TEXT,
+        cover_image TEXT,
+        seo_title TEXT,
+        seo_description TEXT,
+        publish_date TEXT,
+        change_summary TEXT,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_post_versions_post ON post_versions(post_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_post_versions_post_ver ON post_versions(post_id, version_number);
+    `,
   }
 
   const applied = database
@@ -346,6 +372,62 @@ export function setSetting(key: string, value: string): void {
     `INSERT INTO settings (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
   ).run(key, value)
+}
+
+export function createVersionSnapshot(
+  postId: string,
+  createdBy: string,
+  changeSummary: string
+): void {
+  const database = getDb()
+  const post = database
+    .prepare('SELECT * FROM posts WHERE id = ?')
+    .get(postId) as Record<string, unknown> | undefined
+  if (!post) return
+
+  const lastVersion = database
+    .prepare('SELECT MAX(version_number) as n FROM post_versions WHERE post_id = ?')
+    .get(postId) as { n: number | null }
+  const versionNumber = (lastVersion.n ?? 0) + 1
+
+  const id = require('crypto').randomUUID()
+  database
+    .prepare(`
+      INSERT INTO post_versions (
+        id, post_id, version_number, title, subtitle, excerpt, content,
+        status, visibility, language, category_id, cover_image,
+        seo_title, seo_description, publish_date, change_summary, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    .run(
+      id,
+      postId,
+      versionNumber,
+      post.title,
+      post.subtitle,
+      post.excerpt,
+      post.content,
+      post.status,
+      post.visibility,
+      post.language,
+      post.category_id,
+      post.cover_image,
+      post.seo_title,
+      post.seo_description,
+      post.publish_date,
+      changeSummary,
+      createdBy
+    )
+
+  // Purge oldest versions beyond cap of 50
+  const versions = database
+    .prepare('SELECT id FROM post_versions WHERE post_id = ? ORDER BY version_number ASC')
+    .all(postId) as { id: string }[]
+  if (versions.length > 50) {
+    const toDelete = versions.slice(0, versions.length - 50)
+    const del = database.prepare('DELETE FROM post_versions WHERE id = ?')
+    for (const v of toDelete) del.run(v.id)
+  }
 }
 
 export function ownerExists(): boolean {
