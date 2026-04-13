@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requireAuth } from '@/lib/auth-middleware'
 import { randomUUID } from 'crypto'
+import { dispatchChannelNotification } from '@/lib/channel-notifications'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -192,6 +193,16 @@ export async function POST(request: NextRequest) {
     FROM comments c JOIN users u ON u.id = c.author_id
     WHERE c.id = ?
   `).get(id) as CommentRow
+
+  // Dispatch new_comment channel notification (non-blocking, top-level comments only)
+  if (!parentId) {
+    const blogUrl = (await import('@/lib/db').then(m => m.getSetting('blog_url'))) ?? 'http://localhost:3001'
+    dispatchChannelNotification('new_comment', {
+      title: 'New comment on a post',
+      message: `A new comment was posted on "${post.title}".`,
+      link: `${blogUrl}/blog/${post.slug}#comment-${id}`,
+    }).catch(() => { /* non-blocking */ })
+  }
 
   return NextResponse.json({ comment: newComment }, { status: 201, headers: CORS_HEADERS })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sendOwnerPendingUserNotification } from '@/lib/email'
+import { dispatchChannelNotification } from '@/lib/channel-notifications'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,6 +83,13 @@ export async function POST(request: NextRequest) {
   if (owner) {
     await sendOwnerPendingUserNotification(owner.email, user.name, user.email)
   }
+
+  // Dispatch to configured notification channels (non-blocking)
+  dispatchChannelNotification('new_pending_user', {
+    title: 'New user pending approval',
+    message: `${user.name} (${user.email}) confirmed their email and is awaiting approval.`,
+    link: `${process.env.NEXT_PUBLIC_ADMIN_URL ?? ''}/admin/users`,
+  }).catch(() => { /* non-blocking */ })
 
   return NextResponse.json(
     { message: 'Email confirmed. Your account is pending admin approval.' },

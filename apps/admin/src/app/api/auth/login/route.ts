@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getDb } from '@/lib/db'
 import { verifyPassword, generateToken, generateRefreshToken } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { dispatchChannelNotification } from '@/lib/channel-notifications'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -85,6 +86,11 @@ export async function POST(request: NextRequest) {
       ipAddress: ip,
       userAgent: request.headers.get('user-agent'),
     })
+    // Dispatch suspicious_login channel notification (non-blocking)
+    dispatchChannelNotification('suspicious_login', {
+      title: 'Suspicious login attempt blocked',
+      message: `IP address ${ip} has been blocked after too many failed login attempts.`,
+    }).catch(() => { /* non-blocking */ })
     return NextResponse.json(
       { error: 'Too many failed attempts. Please try again in 30 minutes.' },
       { status: 429 }

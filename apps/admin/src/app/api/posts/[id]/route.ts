@@ -8,6 +8,7 @@ import { sanitizeMDX } from '@/lib/mdx'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { v4 as uuidv4 } from 'uuid'
+import { dispatchChannelNotification } from '@/lib/channel-notifications'
 
 function slugify(text: string): string {
   return text
@@ -248,6 +249,18 @@ export async function PUT(
     ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
     userAgent: request.headers.get('user-agent'),
   })
+
+  // Dispatch post_published channel notification (non-blocking)
+  if (data.status === 'published') {
+    const postTitle = data.title ?? existing.title
+    const postSlug = existing.slug
+    const blogUrl = (await import('@/lib/db').then(m => m.getSetting('blog_url'))) ?? 'http://localhost:3001'
+    dispatchChannelNotification('post_published', {
+      title: 'Post published',
+      message: `"${postTitle}" has been published.`,
+      link: `${blogUrl}/blog/${postSlug}`,
+    }).catch(() => { /* non-blocking */ })
+  }
 
   return NextResponse.json({ ok: true })
 }
