@@ -223,6 +223,58 @@ export default function SettingsPage() {
   const [savingNotif, setSavingNotif] = useState(false)
   const [testingChannel, setTestingChannel] = useState<string | null>(null)
 
+  const [clarityEnabled, setClarityEnabled] = useState(false)
+  const [clarityProjectId, setClarityProjectId] = useState('')
+  const [loadingClarity, setLoadingClarity] = useState(true)
+  const [savingClarity, setSavingClarity] = useState(false)
+
+  const fetchClaritySettings = useCallback(async () => {
+    try {
+      const token = getAccessToken()
+      const res = await fetch('/api/admin/clarity-settings', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setClarityEnabled(data.enabled)
+        setClarityProjectId(data.projectId ?? '')
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingClarity(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchClaritySettings()
+  }, [fetchClaritySettings])
+
+  const saveClaritySettings = async () => {
+    setSavingClarity(true)
+    try {
+      const token = getAccessToken()
+      const res = await fetch('/api/admin/clarity-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ enabled: clarityEnabled, projectId: clarityProjectId }),
+      })
+      if (res.ok) {
+        toast({ variant: 'success', title: 'Analytics settings saved.' })
+      } else {
+        const data = await res.json()
+        toast({ variant: 'error', title: data.error ?? 'Failed to save analytics settings.' })
+      }
+    } catch {
+      toast({ variant: 'error', title: 'Network error. Please try again.' })
+    } finally {
+      setSavingClarity(false)
+    }
+  }
+
   const fetchNotifSettings = useCallback(async () => {
     try {
       const token = getAccessToken()
@@ -347,6 +399,82 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+      </section>
+
+      {/* Analytics */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Analytics</h2>
+        <p className={styles.sectionDesc}>
+          Integrate Microsoft Clarity to track visitor behaviour on the public blog. Clarity is
+          only loaded for non-logged-in visitors. Requires a free{' '}
+          <a
+            href="https://clarity.microsoft.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--accent)' }}
+          >
+            Microsoft Clarity
+          </a>{' '}
+          account and a Project ID.
+        </p>
+
+        {loadingClarity ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Loading…</p>
+        ) : (
+          <div className={styles.analyticsCard}>
+            <div className={styles.analyticsHeader}>
+              <div className={styles.analyticsIcon}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                </svg>
+              </div>
+              <div className={styles.analyticsInfo}>
+                <span className={styles.analyticsName}>Microsoft Clarity</span>
+                <span className={styles.analyticsSubtext}>Heatmaps &amp; session recordings</span>
+              </div>
+              <label className={styles.toggle} aria-label="Enable Microsoft Clarity">
+                <input
+                  type="checkbox"
+                  checked={clarityEnabled}
+                  onChange={(e) => setClarityEnabled(e.target.checked)}
+                />
+                <span className={styles.toggleSlider} />
+              </label>
+            </div>
+
+            {clarityEnabled && (
+              <div className={styles.analyticsBody}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel} htmlFor="clarity-project-id">
+                    Clarity Project ID
+                  </label>
+                  <input
+                    id="clarity-project-id"
+                    type="text"
+                    className={styles.analyticsInput}
+                    value={clarityProjectId}
+                    onChange={(e) => setClarityProjectId(e.target.value)}
+                    placeholder="e.g. abc123xyz"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                    Found in your Clarity dashboard → Settings → Overview.
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          className={styles.saveBtn}
+          onClick={saveClaritySettings}
+          disabled={savingClarity || loadingClarity}
+        >
+          {savingClarity ? 'Saving…' : 'Save analytics settings'}
+        </button>
       </section>
 
       {/* Notification Integrations */}

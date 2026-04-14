@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Newsreader } from 'next/font/google'
+import ClarityScript from '@/components/ClarityScript'
 import './globals.css'
 
 const inter = Inter({
@@ -46,7 +47,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${newsreader.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ClarityScript />
+        {children}
+      </body>
     </html>
   )
 }
