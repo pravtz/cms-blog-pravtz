@@ -250,7 +250,7 @@ export async function PUT(
     userAgent: request.headers.get('user-agent'),
   })
 
-  // Dispatch post_published channel notification (non-blocking)
+  // Dispatch post_published channel notification and auto-share (non-blocking)
   if (data.status === 'published') {
     const postTitle = data.title ?? existing.title
     const postSlug = existing.slug
@@ -259,6 +259,18 @@ export async function PUT(
       title: 'Post published',
       message: `"${postTitle}" has been published.`,
       link: `${blogUrl}/blog/${postSlug}`,
+    }).catch(() => { /* non-blocking */ })
+
+    // Auto-share to configured social networks (non-blocking, errors are logged internally)
+    const { autoShareOnPublish } = await import('@/lib/social-media')
+    const updatedPost = db
+      .prepare('SELECT excerpt FROM posts WHERE id = ?')
+      .get(params.id) as { excerpt: string | null } | undefined
+    autoShareOnPublish({
+      postTitle,
+      postSlug,
+      blogUrl,
+      excerpt: updatedPost?.excerpt ?? null,
     }).catch(() => { /* non-blocking */ })
   }
 
