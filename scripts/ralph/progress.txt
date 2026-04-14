@@ -9,6 +9,8 @@
 - The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
 - AES-256-GCM encryption: use Node.js `crypto.createCipheriv('aes-256-gcm', key, iv)`. Derive 32-byte key from env var via `crypto.createHash('sha256').update(raw).digest()`. Store IV(12) + tag(16) + ciphertext concatenated as base64. Never return encrypted keys in API responses; use `maskApiKey()` instead.
 - New DB migration `015_ai_system` adds: `ai_providers` (provider config + encrypted API key), `ai_user_quotas` (per-user AI enable + monthly tokens), `ai_usage` (tokens per user per month with UNIQUE index on user_id+month).
+- CodeMirror: `Annotation.define<T>()` is for transaction metadata; `StateEffect.define<T>()` is for state updates — they are NOT interchangeable. Use `Annotation` when you need to mark a transaction without changing state.
+- CodeMirror: `view.state.field(field, false)` returns `undefined` (not throw) when field not registered — use the second `false` arg for safe optional access.
 
 - Admin layout (`apps/admin/src/app/admin/layout.tsx`): client component; skips sidebar/header for AUTH_PATHS (login, setup, register, confirm-email, interests); auth guard redirects to login if no accessToken in localStorage; includes ToastProvider for all admin pages.
 - AccessToken flow: login API returns `accessToken` in body → stored in `localStorage.setItem('accessToken', ...)` + `localStorage.setItem('currentUser', JSON.stringify(user))` in login-form.tsx. All protected client pages read `localStorage.getItem('accessToken')` and send as `Authorization: Bearer <token>`.
@@ -679,4 +681,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - API key masking: decrypt → expose last 4 chars only; API response never includes the encrypted blob
   - Test connection endpoint calls `{baseUrl}/models` with Bearer token; anthropic base URL differs from openai
   - `ai_usage` uses a UNIQUE index on `(user_id, month)` with `INSERT … ON CONFLICT DO UPDATE` for idempotent token tracking
+---
+
+## 2026-04-14 - US-32
+- Implemented AI ghost text autocomplete in the MDX editor
+- Created `POST /api/admin/ai/complete` route: checks user AI quota, calls OpenAI-compatible or Anthropic API with last ~500 tokens of context + title + language, returns suggestion + updated token usage, upserts ai_usage record
+- Created `GET /api/admin/ai/me` route: returns current user's AI enabled status, provider active status, monthly token limit, and tokens used this month
+- Created `apps/admin/src/components/Editor/ghostText.ts`: CodeMirror extension with StateField, Decoration widget (ghost text via WidgetType), keymap handlers for Tab (accept full), → (accept word), Esc (dismiss). Uses `Annotation.define<boolean>()` (NOT StateEffect) to mark own dispatches to prevent auto-clear on our own doc changes.
+- Updated `MDXEditor.tsx`: integrates ghostTextExtension + keymap, fetches AI status on mount, triggers completion after 1.5s pause in typing, shows token badge "AI Active — X/Y tokens" with pulse animation on update
+- Updated `MDXEditor.module.css`: added `.aiBadge`, `.aiBadgeActive`, `.aiBadgePulse` styles
+- Files changed: apps/admin/src/app/api/admin/ai/complete/route.ts (new), apps/admin/src/app/api/admin/ai/me/route.ts (new), apps/admin/src/components/Editor/ghostText.ts (new), apps/admin/src/components/Editor/MDXEditor.tsx, apps/admin/src/components/Editor/MDXEditor.module.css
+- **Learnings for future iterations:**
+  - CodeMirror `Annotation.define<T>()` vs `StateEffect.define<T>()` are distinct — annotations are for metadata on transactions, effects are for state updates. Confusing them causes TS errors and runtime issues.
+  - `StateField.update()` receives a `Transaction`; to check annotation use `tr.annotation(MyAnnotation)`. To check effects use `tr.effects.some(e => e.is(MyEffect))`.
+  - `view.state.field(myField, false)` — the second arg `false` means "return undefined instead of throwing if field not found" (safe to use when field may not be registered).
+  - Ghost text implemented as a `WidgetType` widget decoration with `side: 1` (appears after cursor). Cursor position is stored in StateField and compared on each render to avoid stale ghost text.
+  - AI completion timer must be cleared on every keystroke; ghost text must be dismissed before setting a new one.
 ---

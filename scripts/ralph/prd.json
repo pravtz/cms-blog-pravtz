@@ -288,7 +288,7 @@
       "priority": 32,
       "version": "v0.4",
       "prd": "PRD-08",
-      "passes": false,
+      "passes": true,
       "description": "Implement AI autocomplete in the MDX editor (only when Owner has enabled AI for the user and API key is configured). Trigger: 1.5s pause in typing. Show ghost text (--text-muted, italic) after cursor. Tab = accept full suggestion, → = accept word by word, Esc/continue typing = discard. Context: last 500 tokens + title + category + language. Max 2 sentences per suggestion. Token usage badge: 'AI Active — X/Y tokens today'. Badge updates in real time."
     },
     {
