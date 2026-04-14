@@ -265,6 +265,24 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_post_versions_post ON post_versions(post_id);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_post_versions_post_ver ON post_versions(post_id, version_number);
     `,
+    '014_email_campaigns': `
+      CREATE TABLE IF NOT EXISTS email_campaigns (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft',
+        scheduled_at TEXT,
+        sent_at TEXT,
+        recipient_count INTEGER NOT NULL DEFAULT 0,
+        sent_count INTEGER NOT NULL DEFAULT 0,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON email_campaigns(status);
+    `,
   }
 
   const applied = database
