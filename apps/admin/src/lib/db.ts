@@ -394,6 +394,22 @@ function runMigrations(database: Database.Database): void {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_usage_user_month ON ai_usage(user_id, month);
       CREATE INDEX IF NOT EXISTS idx_ai_usage_month ON ai_usage(month);
     `,
+    '016_images': `
+      CREATE TABLE IF NOT EXISTS images (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        alt_text TEXT NOT NULL DEFAULT '',
+        ai_generated INTEGER NOT NULL DEFAULT 0,
+        prompt TEXT,
+        style TEXT,
+        aspect_ratio TEXT,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_images_created_by ON images(created_by);
+      CREATE INDEX IF NOT EXISTS idx_images_ai_generated ON images(ai_generated);
+    `,
   }
 
   const applied = database

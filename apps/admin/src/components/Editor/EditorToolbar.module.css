@@ -86,3 +86,29 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.aiImageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  margin-right: var(--space-2);
+}
+
+.aiImageBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.aiImageBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -10,6 +10,7 @@ import { keymap } from '@codemirror/view'
 import { EditorToolbar } from './EditorToolbar'
 import { MDXPreview } from './MDXPreview'
 import { FrontmatterDrawer, type FrontmatterData } from './FrontmatterDrawer'
+import { AIImageGenerator } from '../AIImageGenerator'
 import {
   ghostTextExtension,
   ghostTextField,
@@ -76,6 +77,7 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [isDirty, setIsDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [aiImageOpen, setAiImageOpen] = useState(false)
 
   // AI state
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
@@ -288,6 +290,20 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     }
   }
 
+  const handleInsertAIImage = (url: string, altText: string) => {
+    const view = viewRef.current
+    if (!view) return
+    const insert = `![${altText}](${url})`
+    const { from } = view.state.selection.main
+    view.dispatch({
+      changes: { from, to: from, insert: '\n' + insert + '\n' },
+      selection: { anchor: from + insert.length + 1 },
+    })
+    view.focus()
+    setIsDirty(true)
+    setSaveStatus('unsaved')
+  }
+
   const handleUnpublish = async () => {
     if (!onSave) return
     setPublishing(true)
@@ -451,6 +467,8 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
         <EditorToolbar
           viewRef={viewRef}
           onOpenFrontmatter={() => setDrawerOpen(true)}
+          onOpenAIImageGenerator={() => setAiImageOpen(true)}
+          aiEnabled={!!aiEnabled}
         />
       )}
 
@@ -503,6 +521,14 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
         onClose={() => setDrawerOpen(false)}
         data={frontmatter}
         onChange={handleFrontmatterChange}
+      />
+
+      {/* AI Image Generator */}
+      <AIImageGenerator
+        open={aiImageOpen}
+        onClose={() => setAiImageOpen(false)}
+        onInsertImage={handleInsertAIImage}
+        mode="editor"
       />
     </div>
   )

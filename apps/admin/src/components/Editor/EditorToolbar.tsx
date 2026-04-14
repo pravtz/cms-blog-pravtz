@@ -6,6 +6,8 @@ import styles from './EditorToolbar.module.css'
 interface ToolbarProps {
   viewRef: React.MutableRefObject<EditorView | null>
   onOpenFrontmatter: () => void
+  onOpenAIImageGenerator?: () => void
+  aiEnabled?: boolean
 }
 
 type WrapFormat = { before: string; after: string }
@@ -219,7 +221,7 @@ const BUTTONS: ToolbarButton[] = [
   },
 ]
 
-export function EditorToolbar({ viewRef, onOpenFrontmatter }: ToolbarProps) {
+export function EditorToolbar({ viewRef, onOpenFrontmatter, onOpenAIImageGenerator, aiEnabled }: ToolbarProps) {
   const handleClick = (btn: ToolbarButton) => {
     if (!viewRef.current) return
     btn.action(viewRef.current)
@@ -247,6 +249,17 @@ export function EditorToolbar({ viewRef, onOpenFrontmatter }: ToolbarProps) {
         </span>
       ))}
       <span className={styles.spacer} />
+      {aiEnabled && onOpenAIImageGenerator && (
+        <button
+          type="button"
+          className={styles.aiImageBtn}
+          onClick={onOpenAIImageGenerator}
+          aria-label="Open AI Image Generator"
+          title="Generate images with AI"
+        >
+          ✨ AI Image
+        </button>
+      )}
       <button
         type="button"
         className={styles.frontmatterBtn}
