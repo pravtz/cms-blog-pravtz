@@ -630,3 +630,20 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Teams webhook format uses Adaptive Cards (not legacy MessageCard); Slack uses Block Kit; Discord uses `{ content: string }`.
   - The settings page is `'use client'` — all DB access goes through API routes, not direct imports.
 ---
+
+## 2026-04-14 - US-29
+- Implemented Admin "Redes Sociais" screen at `/admin/social-media`
+- Social networks: GitHub (URL only), Instagram (URL only), X/Twitter (OAuth 1.0a, auto-share), LinkedIn (OAuth 2.0, auto-share), Facebook (Graph API, auto-share)
+- Each network shows a connection status badge (Connected / Not connected / Not configured)
+- Test connection button for Twitter, LinkedIn, and Facebook — saves credentials first then hits test endpoint
+- Auto-share on publish integrated into `apps/admin/src/app/api/posts/[id]/route.ts` — calls `autoShareOnPublish()` when `status=published` (non-blocking, errors logged internally)
+- `lib/social-media.ts`: `getSocialMediaSettings()`, `autoShareOnPublish()`, connection test helpers, OAuth 1.0a signing for Twitter
+- `api/admin/social-media/route.ts`: GET (masked credentials), POST (merge secrets to avoid clearing on save)
+- `api/admin/social-media/test/route.ts`: POST `{ network }` calls the appropriate test function
+- Added "Redes Sociais" sidebar link with share-icon SVG in DynamicSidebar.tsx
+- Files changed: apps/admin/src/lib/social-media.ts, apps/admin/src/app/admin/social-media/page.tsx, apps/admin/src/app/admin/social-media/page.module.css, apps/admin/src/app/api/admin/social-media/route.ts, apps/admin/src/app/api/admin/social-media/test/route.ts, apps/admin/src/components/AdminLayout/DynamicSidebar.tsx, apps/admin/src/app/api/posts/[id]/route.ts
+- **Learnings for future iterations:**
+  - Settings are stored as JSON blobs in the `settings` table via `getSetting`/`setSetting` — suitable for any structured config without new migrations
+  - Masking secrets on GET (replace with `••••••••`) + mergeSecret on POST (skip update if value is the mask) prevents accidental secret erasure on form re-save
+  - `autoShareOnPublish` is called with `await import('@/lib/social-media')` inside the route to keep it lazy (avoids cold-start cost for non-publish operations)
+---

@@ -261,7 +261,7 @@
       "priority": 29,
       "version": "v0.4",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Admin Redes Sociais screen: configure GitHub, Instagram, LinkedIn, Facebook, X/Twitter URLs. Where direct API integration is possible: OAuth token config, auto-share post to network on publish. Show connection status badge per network."
     },
     {
