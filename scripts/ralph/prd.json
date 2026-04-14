@@ -306,7 +306,7 @@
       "priority": 34,
       "version": "v0.4",
       "prd": "PRD-09",
-      "passes": false,
+      "passes": true,
       "description": "Inject Microsoft Clarity script in public blog <head> (not in admin panel). Enable only for non-logged-in users. Owner can enable/disable in Settings. Configuration: Clarity Project ID field in settings."
     },
     {

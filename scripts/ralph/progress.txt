@@ -720,3 +720,17 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Anthropic API has no image generation endpoint — detect provider name and return 422 with clear error message.
   - Token quota for image generation: estimated at 500 tokens/image (DALL-E doesn't use tokens natively, but this maps to the ai_usage tracking system).
 ---
+
+## 2026-04-14 - US-34
+- Implemented Microsoft Clarity analytics integration for the public blog
+- Public API endpoint `GET /api/blog/clarity-config` (admin app) returns `{ enabled, projectId }` with no auth required, short cache headers
+- Admin API `GET/POST /api/admin/clarity-settings` (owner/admin auth) for reading and saving Clarity config (stored in `settings` table as `clarity_enabled` and `clarity_project_id`)
+- Added "Analytics" section to admin Settings page with enable toggle and Project ID input field
+- Created `ClarityScript` client component in blog that: fetches config from admin, checks session to detect logged-in users, and injects Clarity script only for non-logged-in visitors
+- Added `<ClarityScript />` to blog root layout
+- Files changed: apps/admin/src/app/api/blog/clarity-config/route.ts (new), apps/admin/src/app/api/admin/clarity-settings/route.ts (new), apps/admin/src/app/admin/settings/page.tsx, apps/admin/src/app/admin/settings/page.module.css, apps/blog/src/app/layout.tsx, apps/blog/src/components/ClarityScript.tsx (new)
+- **Learnings for future iterations:**
+  - Clarity script injection: use `window as unknown as Record<string, unknown>` to avoid TypeScript read-only property errors when attaching custom global functions
+  - Use `cache: 'no-store'` for the config fetch in Clarity component to always get the latest enabled state; analytics missing a session is fine, stale enable/disable is not
+  - Pattern for analytics components: fetch config → check auth session → inject script. Keep all three steps async and fail silently.
+---
