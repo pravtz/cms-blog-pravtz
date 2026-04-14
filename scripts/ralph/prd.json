@@ -297,7 +297,7 @@
       "priority": 33,
       "version": "v0.4",
       "prd": "PRD-08",
-      "passes": false,
+      "passes": true,
       "description": "Image Generator accessible from Image Library and MDX toolbar. Fields: descriptive prompt, aspect ratio (16:9/1:1/9:16), optional style (Photographic/Illustration/Abstract). Shows 4 variations. User selects one → saved to Image Library. Crop tool before saving. Auto-generated alt text (editable). Images tagged with aiGenerated: true metadata. Tokens charged per generation."
     },
     {

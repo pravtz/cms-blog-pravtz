@@ -9,6 +9,9 @@
 - The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
 - AES-256-GCM encryption: use Node.js `crypto.createCipheriv('aes-256-gcm', key, iv)`. Derive 32-byte key from env var via `crypto.createHash('sha256').update(raw).digest()`. Store IV(12) + tag(16) + ciphertext concatenated as base64. Never return encrypted keys in API responses; use `maskApiKey()` instead.
 - New DB migration `015_ai_system` adds: `ai_providers` (provider config + encrypted API key), `ai_user_quotas` (per-user AI enable + monthly tokens), `ai_usage` (tokens per user per month with UNIQUE index on user_id+month).
+- New DB migration `016_images` adds: `images` table (url, alt_text, ai_generated flag, prompt, style, aspect_ratio, created_by).
+- AI image generation uses OpenAI DALL-E via `/v1/images/generations`; Anthropic provider returns 422 (not supported). 4 images generated via parallel requests (DALL-E 3 only supports n=1 per call). Token cost is estimated at 500 tokens/image.
+- AIImageGenerator component lives in `apps/admin/src/components/AIImageGenerator/` — crop is canvas-based using relative mouse coords (no external library needed).
 - CodeMirror: `Annotation.define<T>()` is for transaction metadata; `StateEffect.define<T>()` is for state updates — they are NOT interchangeable. Use `Annotation` when you need to mark a transaction without changing state.
 - CodeMirror: `view.state.field(field, false)` returns `undefined` (not throw) when field not registered — use the second `false` arg for safe optional access.
 
@@ -697,4 +700,23 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `view.state.field(myField, false)` — the second arg `false` means "return undefined instead of throwing if field not found" (safe to use when field may not be registered).
   - Ghost text implemented as a `WidgetType` widget decoration with `side: 1` (appears after cursor). Cursor position is stored in StateField and compared on each render to avoid stale ghost text.
   - AI completion timer must be cleared on every keystroke; ghost text must be dismissed before setting a new one.
+---
+
+## 2026-04-14 - US-33
+- Implemented AI Image Generator: prompt-based image creation with 4 variations, crop tool, alt text, and Image Library
+- DB migration `016_images`: new `images` table with url, alt_text, ai_generated flag, prompt, style, aspect_ratio, created_by, created_at
+- New API route `POST /api/admin/ai/generate-images`: validates AI quota, calls OpenAI DALL-E 3 4× in parallel, charges 500 tokens/image, returns URLs + alt text suggestion; returns 422 for Anthropic provider (no image support)
+- New API route `GET/POST /api/admin/images`: list images (with pagination, aiOnly filter) + save image to library
+- New component `AIImageGenerator` (`apps/admin/src/components/AIImageGenerator/`): multi-step modal (form → generating → select variation → crop → save), canvas-based crop tool with mouse drag, editable alt text, token usage badge. Two modes: `editor` (inserts markdown into editor) and `library` (saves to library only)
+- EditorToolbar: added `onOpenAIImageGenerator` + `aiEnabled` props; shows "✨ AI Image" button only when AI is active for the user
+- MDXEditor: added `aiImageOpen` state + `handleInsertAIImage()` to insert `![alt](url)` at cursor; wired up AIImageGenerator modal
+- New admin page `/admin/images` (Image Library): grid view with all images, AI/All filter, pagination, copy URL button, "AI" badge on generated images, "Generate with AI" button opens AIImageGenerator
+- Added "Image Library" nav item to DynamicSidebar
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/app/api/admin/images/route.ts (new), apps/admin/src/app/api/admin/ai/generate-images/route.ts (new), apps/admin/src/components/AIImageGenerator/* (new), apps/admin/src/components/Editor/EditorToolbar.tsx, apps/admin/src/components/Editor/EditorToolbar.module.css, apps/admin/src/components/Editor/MDXEditor.tsx, apps/admin/src/app/admin/images/* (new), apps/admin/src/components/AdminLayout/DynamicSidebar.tsx
+- **Learnings for future iterations:**
+  - DALL-E 3 only supports n=1 per request — to get 4 variations, make 4 parallel fetch calls. DALL-E 2 supports n up to 10 but with lower quality.
+  - Canvas-based crop: store crop as relative coordinates (0–1 range) in state; apply to `drawImage()` using `img.width * cropFraction`. Use `crossOrigin='anonymous'` on the image element to allow canvas operations.
+  - When AIImageGenerator saves a cropped image, it uses `canvas.toDataURL('image/png')` as the URL — this produces a data: URL that can be stored in the images table and displayed in img tags.
+  - Anthropic API has no image generation endpoint — detect provider name and return 422 with clear error message.
+  - Token quota for image generation: estimated at 500 tokens/image (DALL-E doesn't use tokens natively, but this maps to the ai_usage tracking system).
 ---
