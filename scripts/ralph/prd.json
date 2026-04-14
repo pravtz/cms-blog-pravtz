@@ -270,7 +270,7 @@
       "priority": 30,
       "version": "v0.4",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Email Marketing screen (disabled until SMTP configured, with setup prompt). When active: create campaigns with simple template editor ({{nome}} variables), send to newsletter subscriber list, schedule sends, view campaign history with open/click metrics if available."
     },
     {

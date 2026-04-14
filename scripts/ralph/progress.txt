@@ -54,6 +54,7 @@
 - `react-markdown` custom components: use `ExtraProps` from `react-markdown` + `ClassAttributes`/`HTMLAttributes` from React to type component props without `any`.
 - `@typescript-eslint/no-explicit-any` eslint disable comments will cause lint errors if the rule isn't in project ESLint config — use proper types instead.
 - posts/categories/tags API routes: slugify uses NFD normalization + regex for accented chars; always add `IF NOT EXISTS` indexes.
+- ESLint disable comments for rules NOT in the project config (e.g. `@typescript-eslint/no-require-imports`) cause lint errors — use a proper top-level `import` instead of `require()` inline.
 
 # Ralph Progress Log
 Started: Sat Apr  4 12:25:18 PDT 2026
@@ -646,4 +647,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Settings are stored as JSON blobs in the `settings` table via `getSetting`/`setSetting` — suitable for any structured config without new migrations
   - Masking secrets on GET (replace with `••••••••`) + mergeSecret on POST (skip update if value is the mask) prevents accidental secret erasure on form re-save
   - `autoShareOnPublish` is called with `await import('@/lib/social-media')` inside the route to keep it lazy (avoids cold-start cost for non-publish operations)
+---
+
+## 2026-04-14 - US-30
+- Implemented Email Marketing screen with SMTP gate (disabled + setup prompt when not configured)
+- DB migration `014_email_campaigns`: table with id, name, subject, body, status (draft/scheduled/sent), scheduled_at, sent_at, recipient_count, sent_count, created_by
+- API routes: GET/POST `/api/admin/email-marketing`, GET/PUT/DELETE `/api/admin/email-marketing/[id]`, POST `/api/admin/email-marketing/[id]/send`
+- Template variables: `{{nome}}` and `{{email}}` replaced per subscriber on send
+- Send modes: immediate (no scheduled_at) or scheduled (future datetime); scheduled campaigns processed on next list fetch
+- Admin UI: campaign list with status tabs, editor modal (name/subject/HTML body), send/schedule modal
+- Added "E-mail Marketing" sidebar nav item (phone-icon SVG) between Newsletter and Audit Log
+- Files changed: `apps/admin/src/lib/db.ts`, `apps/admin/src/__tests__/helpers/db.ts`, 5 new API route files, 2 new page files, `DynamicSidebar.tsx`
+- **Learnings for future iterations:**
+  - `AuthPayload` uses `sub` (not `userId`) for the user ID field — check `auth-middleware.ts` before referencing payload fields
+  - ESLint disable comments for rules not in the project config cause lint failures — use top-level imports instead of inline `require()`
+  - `sendCampaignById` is exported from the list route and imported by the send sub-route to avoid code duplication; Next.js route files can export non-handler functions
 ---
