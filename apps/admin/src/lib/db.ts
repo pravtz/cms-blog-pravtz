@@ -361,6 +361,39 @@ function runMigrations(database: Database.Database): void {
       );
       CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON email_campaigns(status);
     `,
+    '015_ai_system': `
+      CREATE TABLE IF NOT EXISTS ai_providers (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        api_key_encrypted TEXT NOT NULL,
+        model TEXT NOT NULL DEFAULT 'gpt-4o',
+        base_url TEXT,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS ai_user_quotas (
+        user_id TEXT PRIMARY KEY,
+        ai_enabled INTEGER NOT NULL DEFAULT 0,
+        monthly_tokens INTEGER NOT NULL DEFAULT 50000,
+        reset_monthly INTEGER NOT NULL DEFAULT 1,
+        accumulating INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS ai_usage (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        tokens_used INTEGER NOT NULL DEFAULT 0,
+        month TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_usage_user_month ON ai_usage(user_id, month);
+      CREATE INDEX IF NOT EXISTS idx_ai_usage_month ON ai_usage(month);
+    `,
   }
 
   const applied = database
