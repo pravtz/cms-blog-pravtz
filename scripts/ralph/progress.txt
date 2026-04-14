@@ -7,6 +7,8 @@
 - SQLite `datetime('now', ...)` returns `'YYYY-MM-DD HH:MM:SS'` (no T, no timezone). JavaScript's `new Date()` ISO format is `'YYYY-MM-DDTHH:MM:SS.sssZ'`. String comparison between these formats is unreliable (space < 'T' in ASCII). Always insert test timestamps using `new Date(...).toISOString()` to match what the route's `windowStart` comparison expects.
 - Vitest coverage: exclude `db.ts`, `mdx.ts`, `rate-limit.ts` from coverage (require external deps); target files are `auth.ts`, `rbac.ts`, `utils.ts`, `auth-middleware.ts`, `v1-helpers.ts`.
 - The German `ß` does not decompose in NFD normalization — it stays as `ß` and gets replaced by `-` in `slugify()`. Expected: `'Straße'` → `'stra-e'`.
+- AES-256-GCM encryption: use Node.js `crypto.createCipheriv('aes-256-gcm', key, iv)`. Derive 32-byte key from env var via `crypto.createHash('sha256').update(raw).digest()`. Store IV(12) + tag(16) + ciphertext concatenated as base64. Never return encrypted keys in API responses; use `maskApiKey()` instead.
+- New DB migration `015_ai_system` adds: `ai_providers` (provider config + encrypted API key), `ai_user_quotas` (per-user AI enable + monthly tokens), `ai_usage` (tokens per user per month with UNIQUE index on user_id+month).
 
 - Admin layout (`apps/admin/src/app/admin/layout.tsx`): client component; skips sidebar/header for AUTH_PATHS (login, setup, register, confirm-email, interests); auth guard redirects to login if no accessToken in localStorage; includes ToastProvider for all admin pages.
 - AccessToken flow: login API returns `accessToken` in body → stored in `localStorage.setItem('accessToken', ...)` + `localStorage.setItem('currentUser', JSON.stringify(user))` in login-form.tsx. All protected client pages read `localStorage.getItem('accessToken')` and send as `Authorization: Bearer <token>`.
@@ -662,4 +664,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `AuthPayload` uses `sub` (not `userId`) for the user ID field — check `auth-middleware.ts` before referencing payload fields
   - ESLint disable comments for rules not in the project config cause lint failures — use top-level imports instead of inline `require()`
   - `sendCampaignById` is exported from the list route and imported by the send sub-route to avoid code duplication; Next.js route files can export non-handler functions
+---
+
+## 2026-04-14 - US-31
+- Implemented IA & Cotas admin screen (Owner only)
+- DB migration `015_ai_system`: tables `ai_providers`, `ai_user_quotas`, `ai_usage`
+- AES-256-GCM encryption utility (`apps/admin/src/lib/encryption.ts`): `encrypt()`, `decrypt()`, `maskApiKey()`; key derived from `ENCRYPTION_KEY` env var via SHA-256
+- API routes: `GET/POST /api/admin/ai` (provider config + global usage overview + quota table), `POST /api/admin/ai/test` (test provider connection via /models endpoint), `PUT /api/admin/ai/users/[userId]/quota` (per-user quota update)
+- Admin page `/admin/ai-quotas`: ProviderConfig (provider selector OpenAI/Anthropic/Compatible, model selector, masked API key field, base URL for compatible providers, enable toggle, Save + Test connection), GlobalUsageOverview (total tokens, estimated USD cost, bar chart by user), UserQuotaTable (per-user AI enable toggle, usage progress bar green/yellow/red, monthly tokens input with article preview, reset monthly + accumulate checkboxes, Apply button)
+- Added "IA & Cotas" sidebar nav item before Settings
+- Files changed: `apps/admin/src/lib/db.ts`, `apps/admin/src/lib/encryption.ts`, 3 new API route files, 2 new admin page files, `DynamicSidebar.tsx`
+- **Learnings for future iterations:**
+  - AES-256-GCM pattern: `Buffer.concat([iv, tag, ciphertext]).toString('base64')` for storage; reverse on decrypt using `subarray()`
+  - API key masking: decrypt → expose last 4 chars only; API response never includes the encrypted blob
+  - Test connection endpoint calls `{baseUrl}/models` with Bearer token; anthropic base URL differs from openai
+  - `ai_usage` uses a UNIQUE index on `(user_id, month)` with `INSERT … ON CONFLICT DO UPDATE` for idempotent token tracking
 ---

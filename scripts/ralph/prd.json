@@ -279,7 +279,7 @@
       "priority": 31,
       "version": "v0.4",
       "prd": "PRD-08",
-      "passes": false,
+      "passes": true,
       "description": "IA & Cotas admin screen (Owner only): ProviderConfig (OpenAI/Anthropic/compatible, masked API key, test connection, status badge). GlobalUsageOverview (total tokens this month, estimated USD cost, bar chart by user). UserQuotaTable (per-user cota, used tokens, %, progress bar green/yellow/red). QuotaManager: slider/input for monthly tokens, preview ('~X articles'), toggle monthly reset, accumulating option. API keys stored AES-256-GCM encrypted, never returned in responses."
     },
     {
