@@ -6,9 +6,18 @@ import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
 import { oneDark } from '@codemirror/theme-one-dark'
 import type { EditorView } from '@codemirror/view'
+import { keymap } from '@codemirror/view'
 import { EditorToolbar } from './EditorToolbar'
 import { MDXPreview } from './MDXPreview'
 import { FrontmatterDrawer, type FrontmatterData } from './FrontmatterDrawer'
+import {
+  ghostTextExtension,
+  ghostTextField,
+  setGhostText,
+  acceptGhostText,
+  acceptGhostWord,
+  dismissGhostText,
+} from './ghostText'
 import styles from './MDXEditor.module.css'
 
 export interface PostData {
@@ -25,6 +34,13 @@ interface MDXEditorProps {
 
 type ViewMode = 'split' | 'editor' | 'preview'
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error'
+
+interface AiStatus {
+  aiEnabled: boolean
+  providerActive: boolean
+  monthlyTokens: number
+  tokensUsed: number
+}
 
 const DEFAULT_FRONTMATTER: FrontmatterData = {
   title: '',
@@ -61,10 +77,22 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
   const [isDirty, setIsDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
 
+  // AI state
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
+  const [aiBadgePulse, setAiBadgePulse] = useState(false)
+  const aiEnabled = aiStatus?.aiEnabled && aiStatus?.providerActive
+
   const editorRef = useRef<ReactCodeMirrorRef>(null)
   const viewRef = useRef<EditorView | null>(null)
   const autoSaveTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSavedRef = useRef<string>(JSON.stringify({ content, frontmatter }))
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentRef = useRef(content)
+  const frontmatterRef = useRef(frontmatter)
+
+  // Keep refs in sync
+  useEffect(() => { contentRef.current = content }, [content])
+  useEffect(() => { frontmatterRef.current = frontmatter }, [frontmatter])
 
   // Keep viewRef in sync with CodeMirror view
   const handleEditorCreated = useCallback((view: EditorView) => {
@@ -139,10 +167,94 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
+  // Fetch AI status on mount
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+    if (!token) return
+
+    fetch('/api/admin/ai/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: AiStatus | null) => {
+        if (data) setAiStatus(data)
+      })
+      .catch(() => {/* silently ignore */})
+  }, [])
+
+  // Trigger AI autocomplete after 1.5s pause in typing
+  const triggerAiComplete = useCallback(async (currentContent: string) => {
+    if (!aiEnabled) return
+    const view = viewRef.current
+    if (!view) return
+
+    const cursor = view.state.selection.main.head
+    const token = localStorage.getItem('accessToken')
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/admin/ai/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          context: currentContent,
+          title: frontmatterRef.current.title,
+          language: frontmatterRef.current.language,
+        }),
+      })
+
+      if (!res.ok) return
+
+      const data = await res.json() as {
+        suggestion: string
+        totalUsedToday: number
+        monthlyLimit: number
+      }
+
+      if (!data.suggestion) return
+
+      // Update AI status badge
+      setAiStatus((prev) =>
+        prev ? { ...prev, tokensUsed: data.totalUsedToday } : prev
+      )
+      setAiBadgePulse(true)
+      setTimeout(() => setAiBadgePulse(false), 500)
+
+      // Check cursor hasn't moved since we sent the request
+      const currentCursor = view.state.selection.main.head
+      if (currentCursor !== cursor) return
+
+      // Set ghost text at cursor position
+      view.dispatch({
+        effects: setGhostText.of({ text: data.suggestion, pos: cursor }),
+      })
+    } catch {
+      // Silently ignore AI errors
+    }
+  }, [aiEnabled])
+
   const handleContentChange = (value: string) => {
     setContent(value)
     setIsDirty(true)
     setSaveStatus('unsaved')
+
+    // Clear existing AI timer; dismiss ghost text on typing
+    if (aiTimerRef.current) clearTimeout(aiTimerRef.current)
+    if (viewRef.current) {
+      const ghost = viewRef.current.state.field(ghostTextField, false)
+      if (ghost) {
+        dismissGhostText(viewRef.current)
+      }
+    }
+
+    if (aiEnabled) {
+      aiTimerRef.current = setTimeout(() => {
+        triggerAiComplete(value)
+      }, 1500)
+    }
   }
 
   const handleFrontmatterChange = (partial: Partial<FrontmatterData>) => {
@@ -197,6 +309,32 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     error: 'Save failed',
   }
 
+  // CodeMirror keybindings for ghost text
+  const ghostKeymap = keymap.of([
+    {
+      key: 'Tab',
+      run(view) {
+        return acceptGhostText(view)
+      },
+    },
+    {
+      key: 'ArrowRight',
+      run(view) {
+        return acceptGhostWord(view)
+      },
+    },
+    {
+      key: 'Escape',
+      run(view) {
+        return dismissGhostText(view)
+      },
+    },
+  ])
+
+  const aiBadgeLabel = aiEnabled && aiStatus
+    ? `AI Active — ${aiStatus.tokensUsed.toLocaleString()}/${aiStatus.monthlyTokens.toLocaleString()} tokens`
+    : null
+
   return (
     <div className={styles.editorRoot}>
       {/* Header */}
@@ -221,6 +359,18 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
           >
             {saveStatusLabel[saveStatus]}
           </span>
+
+          {/* AI token usage badge */}
+          {aiBadgeLabel && (
+            <span
+              className={`${styles.aiBadge} ${styles.aiBadgeActive} ${aiBadgePulse ? styles.aiBadgePulse : ''}`}
+              title="AI autocomplete is active. Tab=accept, →=word, Esc=dismiss"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {aiBadgeLabel}
+            </span>
+          )}
 
           {/* View mode toggle */}
           <div className={styles.viewToggle} role="group" aria-label="Editor view mode">
@@ -320,7 +470,7 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
               ref={editorRef}
               value={content}
               height="100%"
-              extensions={[markdown()]}
+              extensions={[markdown(), ghostTextExtension(), ghostKeymap]}
               theme={oneDark}
               onChange={handleContentChange}
               onCreateEditor={handleEditorCreated}
