@@ -283,6 +283,21 @@ function runMigrations(database: Database.Database): void {
       );
       CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON email_campaigns(status);
     `,
+    '017_metrics_tracking': `
+      CREATE TABLE IF NOT EXISTS page_views_daily (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id TEXT,
+        view_date TEXT NOT NULL,
+        views INTEGER NOT NULL DEFAULT 0,
+        unique_visitors INTEGER NOT NULL DEFAULT 0,
+        traffic_source TEXT NOT NULL DEFAULT 'direct',
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_pvd_post_date_source
+        ON page_views_daily(post_id, view_date, traffic_source);
+      CREATE INDEX IF NOT EXISTS idx_pvd_date ON page_views_daily(view_date);
+      CREATE INDEX IF NOT EXISTS idx_pvd_post ON page_views_daily(post_id);
+    `,
   }
 
   const applied = database

@@ -32,6 +32,30 @@ export async function GET(
   // Increment view count
   db.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').run(post.id as string)
 
+  // Track daily views for metrics dashboard
+  try {
+    const referer = request.headers.get('referer') ?? ''
+    let trafficSource = 'direct'
+    if (referer) {
+      if (/google\.|bing\.|duckduckgo\.|yahoo\.|baidu\.|yandex\./i.test(referer)) {
+        trafficSource = 'organic'
+      } else if (/facebook\.|twitter\.|x\.com|instagram\.|linkedin\.|pinterest\.|tiktok\./i.test(referer)) {
+        trafficSource = 'social'
+      } else {
+        trafficSource = 'referral'
+      }
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    db.prepare(`
+      INSERT INTO page_views_daily (post_id, view_date, views, unique_visitors, traffic_source)
+      VALUES (?, ?, 1, 1, ?)
+      ON CONFLICT(post_id, view_date, traffic_source)
+      DO UPDATE SET views = views + 1, unique_visitors = unique_visitors + 1
+    `).run(post.id as string, today, trafficSource)
+  } catch {
+    // Non-critical — ignore tracking errors
+  }
+
   // Get tags
   const tags = db
     .prepare(
