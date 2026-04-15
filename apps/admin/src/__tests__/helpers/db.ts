@@ -316,6 +316,20 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_ideas_created_by ON ideas(created_by);
       CREATE INDEX IF NOT EXISTS idx_ideas_rating ON ideas(rating DESC);
     `,
+    '020_c4_diagrams': `
+      CREATE TABLE IF NOT EXISTS c4_diagrams (
+        id TEXT PRIMARY KEY,
+        level TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT '',
+        author_id TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        is_current INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (author_id) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_c4_level_current ON c4_diagrams(level, is_current);
+      CREATE INDEX IF NOT EXISTS idx_c4_level_version ON c4_diagrams(level, version DESC);
+    `,
   }
 
   const applied = database

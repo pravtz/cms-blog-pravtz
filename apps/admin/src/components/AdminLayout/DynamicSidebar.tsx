@@ -171,6 +171,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/admin/c4-model',
+    label: 'C4 Architecture',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="8" height="6" rx="1" />
+        <rect x="14" y="2" width="8" height="6" rx="1" />
+        <rect x="8" y="16" width="8" height="6" rx="1" />
+        <path d="M6 8v4M18 8v4M6 12h12M12 12v4" />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/settings',
     label: 'Settings',
     icon: (
