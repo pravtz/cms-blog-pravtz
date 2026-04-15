@@ -816,3 +816,31 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - For SQLite JSON filtering on `shared_with` arrays, filtering in JS (after fetching all rows) is more reliable than SQLite JSON functions which may not be available in all builds
   - The new post editor at `/admin/posts/new` already supports `?title=` query param for pre-filling the title — no changes needed to enable "Convert to Draft"
 ---
+
+## 2026-04-15 - US-39
+- Implemented C4 Model architecture diagram screen in admin panel at `/admin/c4-model`
+- Three diagram levels: Context, Container, Component — each independently stored and versioned
+- Mermaid C4 syntax rendering (client-side dynamic import, dark theme)
+- Owner-only editing: textarea source editor with Preview + Save actions
+- Version history panel: lists all saved versions per level with author, date, current badge
+- Restore: Owner can restore any previous version (creates new version from old source)
+- Default starter diagrams for all three levels pre-populated if no saved version exists
+- API routes: `GET/PUT /api/admin/c4`, `GET /api/admin/c4/history`, `POST /api/admin/c4/restore`
+- DB migration `020_c4_diagrams`: `c4_diagrams` table with level, source, author_id, version, is_current
+- Sidebar entry "C4 Architecture" added to DynamicSidebar
+- Files changed:
+  - `apps/admin/src/app/admin/c4-model/page.tsx` (new)
+  - `apps/admin/src/app/admin/c4-model/page.module.css` (new)
+  - `apps/admin/src/app/api/admin/c4/route.ts` (new)
+  - `apps/admin/src/app/api/admin/c4/history/route.ts` (new)
+  - `apps/admin/src/app/api/admin/c4/restore/route.ts` (new)
+  - `apps/admin/src/lib/db.ts` (migration 020_c4_diagrams)
+  - `apps/admin/src/__tests__/helpers/db.ts` (same migration for tests)
+  - `apps/admin/src/components/AdminLayout/DynamicSidebar.tsx` (new nav entry)
+  - `apps/admin/package.json` + `package-lock.json` (mermaid added)
+- **Learnings for future iterations:**
+  - Mermaid import: `import('mermaid').then(m => m.default as Mermaid)` — use `import type { Mermaid } from 'mermaid'` for the ref type; `typeof import('mermaid')` does NOT match due to the `mermaidAPI` required property in the `Mermaid` interface
+  - Mermaid must be initialized client-side only (dynamic import in useEffect). Server-side import will fail.
+  - `mermaid.render(id, source)` returns `Promise<{ svg: string }>` — each call needs a unique id
+  - `auth-middleware.ts` `AuthPayload` uses `sub` (not `userId`) for the user ID field
+---
