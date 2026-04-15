@@ -342,7 +342,7 @@
       "priority": 38,
       "version": "v0.5",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Admin Ideias screen: create ideas with title, optional description, rating 0-10, share with specific users. List sorted by rating descending. Color-coded rating badge by range. Filters: minimum rating, shared/not-shared. Actions: create, edit, 'Convert to Draft' (opens editor with pre-filled title), delete."
     },
     {

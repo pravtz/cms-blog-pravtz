@@ -800,3 +800,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `ai_translated` is a DB column (not URL param) so warning persists across page reloads
   - Translation button only shows when `postId` exists (post must be saved first) to avoid translating unsaved content
 ---
+
+## 2026-04-15 - US-38
+- Implemented Ideas CRUD brainstorm board with ratings and draft conversion
+- DB migration `019_ideas`: adds `ideas` table (id, title, description, rating 0-10, created_by, shared_with JSON array, created_at, updated_at)
+- API routes: GET/POST `/api/admin/ideas` (list with min_rating/shared filters, create), PUT/DELETE `/api/admin/ideas/[id]` (update/delete with ownership check)
+- Admin UI: `/admin/ideas` page — card grid layout sorted by rating desc, color-coded rating badge (0-3=error/red, 4-6=warning/yellow, 7-10=success/green)
+- Filters: minimum rating dropdown, shared/not-shared select
+- Create/edit modal: title, description, rating slider (0-10) with live badge preview, user multi-select for sharing
+- Actions: Edit, Convert to Draft (redirects to `/admin/posts/new?title=<title>`), Delete
+- Added "Ideas" nav item to DynamicSidebar with lightbulb icon
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/__tests__/helpers/db.ts, apps/admin/src/app/api/admin/ideas/route.ts, apps/admin/src/app/api/admin/ideas/[id]/route.ts, apps/admin/src/app/admin/ideas/page.tsx, apps/admin/src/app/admin/ideas/page.module.css, apps/admin/src/components/AdminLayout/DynamicSidebar.tsx
+- **Learnings for future iterations:**
+  - Auth JWT payload uses `auth.payload.sub` (not `userId`) for the user ID field; `auth.payload.role` for the role
+  - For SQLite JSON filtering on `shared_with` arrays, filtering in JS (after fetching all rows) is more reliable than SQLite JSON functions which may not be available in all builds
+  - The new post editor at `/admin/posts/new` already supports `?title=` query param for pre-filling the title — no changes needed to enable "Convert to Draft"
+---
