@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import styles from './page.module.css'
 import { Badge } from '@/components'
 import { useToast } from '@/components'
@@ -582,6 +583,41 @@ export default function AiQuotasPage() {
             </table>
           </div>
         )}
+      </section>
+
+      {/* Trends shortcut */}
+      <section className={styles.section} aria-labelledby="trends-title">
+        <h2 className={styles.sectionTitle} id="trends-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+          Análise de Tendências
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: '0 0 var(--space-4) 0' }}>
+          Use IA para identificar tópicos em crescimento, declínio e lacunas de conteúdo no seu blog.
+        </p>
+        <Link
+          href="/admin/ai-quotas/trends"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2) var(--space-4)',
+            background: 'var(--accent)',
+            color: '#fff',
+            borderRadius: 'var(--radius-md)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+          Ir para Tendências
+        </Link>
       </section>
     </div>
   )

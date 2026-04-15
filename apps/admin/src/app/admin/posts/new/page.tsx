@@ -1,11 +1,15 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { MDXEditor, type PostData } from '@/components/Editor'
+import type { FrontmatterData } from '@/components/Editor'
 import styles from './page.module.css'
 
-export default function NewPostPage() {
+function NewPostContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const prefillTitle = searchParams.get('title') ?? ''
 
   const handleSave = async (data: PostData, options?: { createSnapshot?: boolean }) => {
     const method = data.id ? 'PUT' : 'POST'
@@ -48,7 +52,18 @@ export default function NewPostPage() {
 
   return (
     <div className={styles.page}>
-      <MDXEditor onSave={handleSave} />
+      <MDXEditor
+        onSave={handleSave}
+        initialData={prefillTitle ? { frontmatter: { title: prefillTitle } as FrontmatterData } : undefined}
+      />
     </div>
+  )
+}
+
+export default function NewPostPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', color: 'var(--text-muted)' }}>Loading…</div>}>
+      <NewPostContent />
+    </Suspense>
   )
 }
