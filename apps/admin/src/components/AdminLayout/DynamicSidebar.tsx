@@ -159,6 +159,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/admin/ideas',
+    label: 'Ideas',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <line x1="12" y1="2" x2="12" y2="6" />
+        <path d="M5 19a7 7 0 1 1 14 0" />
+        <line x1="9" y1="21" x2="15" y2="21" />
+        <line x1="10" y1="23" x2="14" y2="23" />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/settings',
     label: 'Settings',
     icon: (
