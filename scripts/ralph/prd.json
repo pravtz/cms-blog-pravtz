@@ -324,7 +324,7 @@
       "priority": 36,
       "version": "v0.5",
       "prd": "PRD-08",
-      "passes": false,
+      "passes": true,
       "description": "Trends screen in AI & Quotas (users with AI enabled). User selects category + time window (7/30/90 days). System analyzes posts, tags, view growth. AI generates report: top 5 growing topics, declining topics, content gap suggestions. Displayed as scored list with justifications. 'Create post on this topic' button opens editor with pre-filled title. Tokens charged to user quota."
     },
     {

@@ -754,3 +754,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - For chart component `data` prop typing: use `type ChartRow = { date: string } & Record<string, number | string>` and cast call sites with `as unknown as ChartRow[]`
   - `page_views_daily` uses UNIQUE index on (post_id, view_date, traffic_source) — use `ON CONFLICT DO UPDATE` pattern for idempotent inserts
 ---
+
+## 2026-04-15 - US-36
+- Implemented AI Trends Analysis screen in AI & Quotas section
+- Created `POST /api/admin/ai/trends` endpoint: checks AI enabled/quota, queries published posts + tags + categories for the selected time window, builds a data summary, calls AI (Anthropic or OpenAI-compatible) to generate JSON report with growing/declining/gap topics, charges tokens to user quota
+- Created `/admin/ai-quotas/trends/page.tsx`: time window segmented control (7/30/90 days), category dropdown filter, "Analyze" button, loading skeleton, results display with scored TrendCard components, "Create post on this topic" button that navigates to /admin/posts/new?title=...
+- Added "Tendências AI" entry to DynamicSidebar (nav item with trending-up icon)
+- Added "Tendências" shortcut section to AI & Quotas page with link to trends screen
+- Updated `/admin/posts/new/page.tsx` to read `?title=` query param via `useSearchParams` (wrapped in Suspense per codebase pattern) and pass as `initialData.frontmatter.title` to MDXEditor
+- Files changed: `apps/admin/src/app/api/admin/ai/trends/route.ts` (new), `apps/admin/src/app/admin/ai-quotas/trends/page.tsx` (new), `apps/admin/src/app/admin/ai-quotas/trends/page.module.css` (new), `apps/admin/src/app/admin/ai-quotas/page.tsx`, `apps/admin/src/components/AdminLayout/DynamicSidebar.tsx`, `apps/admin/src/app/admin/posts/new/page.tsx`
+- **Learnings for future iterations:**
+  - AI endpoints follow the pattern: requireAuth → check quota → get provider → call AI → charge tokens → return result. See `/api/admin/ai/complete/route.ts` for canonical reference.
+  - `useSearchParams()` requires Suspense wrapper in Next.js App Router client components — wrap in `<Suspense>` and extract logic to inner component (see `users/page.tsx` pattern).
+  - MDXEditor accepts `initialData?: Partial<PostData>` — pass `{ frontmatter: { title: '...' } as FrontmatterData }` to pre-fill the title; it spreads over DEFAULT_FRONTMATTER.
+  - AI JSON responses may include markdown code fences — always strip ```json ... ``` before `JSON.parse()`.
+  - Trends API queries `page_views_daily` is NOT used here — we use the `views` column on `posts` directly; `page_views_daily` is for time-series data in the metrics dashboard.
+---
