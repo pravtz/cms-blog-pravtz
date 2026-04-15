@@ -22,6 +22,7 @@ interface RawPost {
   publish_date: string | null
   translation_link: string | null
   translation_group_id: string | null
+  ai_translated: number
   linked_post: { id: string; title: string; slug: string; language: string } | null
   tags: Array<{ id: string; name: string; slug: string }>
   group_ids: string[]
@@ -44,6 +45,7 @@ export default function EditPostPage() {
           id: post.id,
           content: post.content,
           status: post.status,
+          aiTranslated: Boolean(post.ai_translated),
           frontmatter: {
             title: post.title ?? '',
             subtitle: post.subtitle ?? '',

@@ -425,6 +425,9 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_pvd_date ON page_views_daily(view_date);
       CREATE INDEX IF NOT EXISTS idx_pvd_post ON page_views_daily(post_id);
     `,
+    '018_ai_translated': `
+      ALTER TABLE posts ADD COLUMN ai_translated INTEGER NOT NULL DEFAULT 0;
+    `,
   }
 
   const applied = database

@@ -26,6 +26,7 @@ export interface PostData {
   content: string
   frontmatter: FrontmatterData
   status?: 'draft' | 'published' | 'scheduled'
+  aiTranslated?: boolean
 }
 
 interface MDXEditorProps {
@@ -78,6 +79,12 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
   const [isDirty, setIsDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [aiImageOpen, setAiImageOpen] = useState(false)
+  const [translateModalOpen, setTranslateModalOpen] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState<string | null>(null)
+  const [aiTranslationWarning, setAiTranslationWarning] = useState(
+    initialData?.aiTranslated ?? false
+  )
 
   // AI state
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
@@ -318,6 +325,61 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
     }
   }
 
+  const handleTranslate = async () => {
+    if (!postId) return
+    setTranslating(true)
+    setTranslateError(null)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+    if (!token) {
+      setTranslateError('Not authenticated.')
+      setTranslating(false)
+      return
+    }
+
+    // Save current state first
+    try {
+      await save(getCurrentData())
+    } catch {
+      setTranslateError('Failed to save the post before translating.')
+      setTranslating(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/admin/ai/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ postId }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        setTranslateError(data.error ?? 'Translation failed. Please try again.')
+        setTranslating(false)
+        return
+      }
+
+      const data = await res.json() as { newPostId: string }
+      setTranslating(false)
+      setTranslateModalOpen(false)
+      // Navigate to the new EN draft
+      window.location.href = `/admin/posts/${data.newPostId}/edit`
+    } catch {
+      setTranslateError('Translation failed. Please try again.')
+      setTranslating(false)
+    }
+  }
+
+  const estimatedTokens = Math.ceil(
+    ((frontmatter.title?.length ?? 0)
+      + (frontmatter.subtitle?.length ?? 0)
+      + (frontmatter.excerpt?.length ?? 0)
+      + content.length) / 4
+  ) * 2 + 500
+
   const saveStatusLabel: Record<SaveStatus, string> = {
     saved: 'Saved',
     saving: 'Saving…',
@@ -462,12 +524,32 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
         </div>
       </div>
 
+      {/* AI Translation Warning */}
+      {aiTranslationWarning && (
+        <div className={styles.aiTranslationWarning} role="alert">
+          <span>⚠ Review before publishing. This is an AI-generated translation and may contain mistakes.</span>
+          <button
+            type="button"
+            className={styles.aiWarningDismiss}
+            onClick={() => setAiTranslationWarning(false)}
+            aria-label="Dismiss AI translation warning"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Toolbar — only shown when editor is visible */}
       {viewMode !== 'preview' && (
         <EditorToolbar
           viewRef={viewRef}
           onOpenFrontmatter={() => setDrawerOpen(true)}
           onOpenAIImageGenerator={() => setAiImageOpen(true)}
+          onTranslateToEN={
+            aiEnabled && frontmatter.language === 'pt-BR' && postId
+              ? () => setTranslateModalOpen(true)
+              : undefined
+          }
           aiEnabled={!!aiEnabled}
         />
       )}
@@ -530,6 +612,50 @@ export function MDXEditor({ initialData, onSave }: MDXEditorProps) {
         onInsertImage={handleInsertAIImage}
         mode="editor"
       />
+
+      {/* AI Translation Confirmation Modal */}
+      {translateModalOpen && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="translate-modal-title">
+          <div className={styles.modalBox}>
+            <h2 id="translate-modal-title" className={styles.modalTitle}>
+              Translate to English
+            </h2>
+            <p className={styles.modalBody}>
+              AI will translate this post (title, subtitle, excerpt, and content) from Portuguese to English and create a new draft linked to this post.
+            </p>
+            <p className={styles.modalEstimate}>
+              Estimated token usage: <strong>~{estimatedTokens.toLocaleString()} tokens</strong>
+            </p>
+            <p className={styles.modalWarning}>
+              ⚠ AI translations may contain mistakes. Always review and edit before publishing.
+            </p>
+            {translateError && (
+              <p className={styles.modalError}>{translateError}</p>
+            )}
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => {
+                  setTranslateModalOpen(false)
+                  setTranslateError(null)
+                }}
+                disabled={translating}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmBtn}
+                onClick={handleTranslate}
+                disabled={translating}
+              >
+                {translating ? 'Translating…' : 'Translate to EN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -7,6 +7,7 @@ interface ToolbarProps {
   viewRef: React.MutableRefObject<EditorView | null>
   onOpenFrontmatter: () => void
   onOpenAIImageGenerator?: () => void
+  onTranslateToEN?: () => void
   aiEnabled?: boolean
 }
 
@@ -221,7 +222,7 @@ const BUTTONS: ToolbarButton[] = [
   },
 ]
 
-export function EditorToolbar({ viewRef, onOpenFrontmatter, onOpenAIImageGenerator, aiEnabled }: ToolbarProps) {
+export function EditorToolbar({ viewRef, onOpenFrontmatter, onOpenAIImageGenerator, onTranslateToEN, aiEnabled }: ToolbarProps) {
   const handleClick = (btn: ToolbarButton) => {
     if (!viewRef.current) return
     btn.action(viewRef.current)
@@ -249,6 +250,17 @@ export function EditorToolbar({ viewRef, onOpenFrontmatter, onOpenAIImageGenerat
         </span>
       ))}
       <span className={styles.spacer} />
+      {aiEnabled && onTranslateToEN && (
+        <button
+          type="button"
+          className={styles.aiTranslateBtn}
+          onClick={onTranslateToEN}
+          aria-label="Translate this post to English using AI"
+          title="Translate to English (AI)"
+        >
+          🌐 Translate to EN
+        </button>
+      )}
       {aiEnabled && onOpenAIImageGenerator && (
         <button
           type="button"
