@@ -315,7 +315,7 @@
       "priority": 35,
       "version": "v0.5",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Metrics screen with period filter (7d/30d/3m/12m/custom). Charts: unique visitors × page views over time, top posts ranking (views), traffic sources (organic/direct/referral/social), engagement rate (likes+comments÷views), newsletter subscriber growth, SEO score per post. Export: email summary to user with metrics:read permission, notification link (Teams/Slack/Discord integration)."
     },
     {

@@ -1,4 +1,6 @@
 ## Codebase Patterns
+- SVG charts: use `viewBox="0 0 100 H" preserveAspectRatio="none"` for responsive line charts. Normalize X to 0-100 range, Y as fraction of maxVal. Grid lines with `strokeDasharray`. X-axis labels via `<text>` elements at computed x positions.
+- Chart component type: use `type ChartRow = { date: string } & Record<string, number | string>` for chart data rows; cast typed arrays with `as unknown as ChartRow[]` at call sites to avoid TS index signature conflicts.
 - `useToast()` returns `{ toast, dismiss }` — call `toast({ variant: 'success'|'error'|'warning'|'info', title: '...' })` (not `addToast`, not `type`).
 - `Modal` prop is `open` (not `isOpen`). Other props: `onClose`, `title`, `footer` (ReactNode).
 - Badge variants: `'default' | 'primary' | 'success' | 'warning' | 'error' | 'info'` — no `neutral` variant.
@@ -733,4 +735,22 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Clarity script injection: use `window as unknown as Record<string, unknown>` to avoid TypeScript read-only property errors when attaching custom global functions
   - Use `cache: 'no-store'` for the config fetch in Clarity component to always get the latest enabled state; analytics missing a session is fine, stale enable/disable is not
   - Pattern for analytics components: fetch config → check auth session → inject script. Keep all three steps async and fail silently.
+---
+
+## 2026-04-15 - US-35
+- Implemented detailed metrics dashboard at `/admin/metrics`
+- Added `017_metrics_tracking` migration (already in db.ts): `page_views_daily` table tracks per-day views, unique visitors, and traffic source per post
+- Updated `apps/admin/src/app/api/blog/posts/[slug]/route.ts` to insert into `page_views_daily` on each view (Referer-based traffic source detection: organic/direct/referral/social)
+- Added `017_metrics_tracking` migration to `apps/admin/src/__tests__/helpers/db.ts`
+- Created `GET /api/admin/metrics/detailed` — period filter (7d/30d/3m/12m/custom), returns: time-series views+unique visitors, top posts with engagement rate, traffic sources, newsletter growth, SEO scores
+- Created `POST /api/admin/metrics/export` — sends summary to current user's email (SMTP) and/or Teams/Slack/Discord channels from notification settings
+- Created `apps/admin/src/app/admin/metrics/page.tsx` — period filter tabs, summary cards (6 KPIs), SVG line chart for visitors/views, horizontal bar chart for traffic sources, line chart for newsletter growth, top posts table with engagement rate, SEO score bars per post
+- Added "Metrics" nav item to DynamicSidebar (chart bars icon), positioned after Dashboard
+- Files changed: `apps/admin/src/lib/db.ts` (no changes, migration already present), `apps/admin/src/__tests__/helpers/db.ts`, `apps/admin/src/app/api/blog/posts/[slug]/route.ts`, `apps/admin/src/app/api/admin/metrics/detailed/route.ts` (new), `apps/admin/src/app/api/admin/metrics/export/route.ts` (new), `apps/admin/src/app/admin/metrics/page.tsx` (new), `apps/admin/src/app/admin/metrics/page.module.css` (new), `apps/admin/src/components/AdminLayout/DynamicSidebar.tsx`
+- **Learnings for future iterations:**
+  - SVG charts with `viewBox="0 0 100 H" preserveAspectRatio="none"` are responsive without external libraries — normalize X coordinates to 0-100 range
+  - Traffic source detection from `Referer` header: check for search engine domains (organic), social media domains (social), otherwise referral; no header = direct
+  - SEO score calculation: title (20pts), title length 50-60 (10pts), description (20pts), description length 120-160 (10pts), cover image (20pts), reading time (15pts), slug (15pts) — capped at 100
+  - For chart component `data` prop typing: use `type ChartRow = { date: string } & Record<string, number | string>` and cast call sites with `as unknown as ChartRow[]`
+  - `page_views_daily` uses UNIQUE index on (post_id, view_date, traffic_source) — use `ON CONFLICT DO UPDATE` pattern for idempotent inserts
 ---
