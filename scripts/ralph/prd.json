@@ -333,7 +333,7 @@
       "priority": 37,
       "version": "v0.5",
       "prd": "PRD-08",
-      "passes": false,
+      "passes": true,
       "description": "In MDX editor (for pt-BR posts, user with AI enabled): 'Translate to EN' in AI menu. Confirmation modal showing token estimate. On confirm: save current post, AI translates title/subtitle/excerpt/content, create draft with lang:en + linked translationGroupId. Open translated draft in editor. Persistent warning: 'Review before publishing. AI may make mistakes.' Tokens charged to user quota."
     },
     {

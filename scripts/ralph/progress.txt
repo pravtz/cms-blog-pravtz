@@ -770,3 +770,33 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - AI JSON responses may include markdown code fences — always strip ```json ... ``` before `JSON.parse()`.
   - Trends API queries `page_views_daily` is NOT used here — we use the `views` column on `posts` directly; `page_views_daily` is for time-series data in the metrics dashboard.
 ---
+
+## 2026-04-15 - US-37
+- Implemented AI Auto-translation feature for pt-BR posts in MDX editor
+- Created `POST /api/admin/ai/translate` API endpoint that:
+  - Checks AI enabled + monthly quota for the user
+  - Fetches source pt-BR post content (title, subtitle, excerpt, content)
+  - Sends translation prompt to active AI provider (Anthropic or OpenAI-compatible)
+  - Creates a new draft with `language: 'en'`, `ai_translated: 1`, and shared `translation_group_id`
+  - Charges tokens to user quota and logs audit event
+- Added DB migration `018_ai_translated` adding `ai_translated INTEGER NOT NULL DEFAULT 0` to posts table
+- Updated test helper `db.ts` with the new migration
+- Added "🌐 Translate to EN" button in EditorToolbar (visible only when AI enabled + post is pt-BR + post has been saved)
+- Added confirmation modal in MDXEditor showing: estimated token cost, warning text, confirm/cancel buttons
+- Added persistent AI translation warning banner ("⚠ Review before publishing. This is an AI-generated translation...") shown when `ai_translated = 1` (dismissible per session)
+- Edit post page now reads `ai_translated` field from API and passes as `aiTranslated` to MDXEditor
+- Files changed:
+  - `apps/admin/src/app/api/admin/ai/translate/route.ts` (new)
+  - `apps/admin/src/lib/db.ts` (migration 018)
+  - `apps/admin/src/__tests__/helpers/db.ts` (migration 018)
+  - `apps/admin/src/components/Editor/EditorToolbar.tsx` (new prop + button)
+  - `apps/admin/src/components/Editor/EditorToolbar.module.css` (aiTranslateBtn style)
+  - `apps/admin/src/components/Editor/MDXEditor.tsx` (modal + warning + handler)
+  - `apps/admin/src/components/Editor/MDXEditor.module.css` (modal + warning styles)
+  - `apps/admin/src/app/admin/posts/[id]/edit/page.tsx` (pass aiTranslated)
+- **Learnings for future iterations:**
+  - Token estimate formula for translation: `inputTokens * 2 + 500` where `inputTokens = totalChars / 4`
+  - AI translation response is JSON with {title, subtitle, excerpt, content} — strip markdown code fences before parsing
+  - `ai_translated` is a DB column (not URL param) so warning persists across page reloads
+  - Translation button only shows when `postId` exists (post must be saved first) to avoid translating unsaved content
+---
