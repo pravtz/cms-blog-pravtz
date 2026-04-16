@@ -360,7 +360,7 @@
       "priority": 40,
       "version": "v0.5",
       "prd": "PRD-01",
-      "passes": false,
+      "passes": true,
       "description": "Configure Storybook static build. Set up deployment pipeline to publish Storybook as a separate static site (e.g., GitHub Pages or CDN). All components with all states, variants, and themes visible publicly."
     },
     {

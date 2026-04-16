@@ -844,3 +844,15 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `mermaid.render(id, source)` returns `Promise<{ svg: string }>` — each call needs a unique id
   - `auth-middleware.ts` `AuthPayload` uses `sub` (not `userId`) for the user ID field
 ---
+
+## 2026-04-16 - US-40
+- Added AllThemes story to Modal.stories.tsx (the only base component missing it — Button, Badge, Card, Input, Toast all already had AllThemes stories)
+- Added `actions/configure-pages@v4` step to .github/workflows/storybook.yml for proper GitHub Pages base URL configuration
+- Storybook static build already fully configured: `build-storybook` script in apps/admin/package.json, @storybook/nextjs framework, all 7 themes in preview.ts global toolbar, AllThemes stories on all 6 base components
+- Files changed: apps/admin/src/components/Modal.stories.tsx, .github/workflows/storybook.yml (new file — was in .github/ which was untracked)
+- **Learnings for future iterations:**
+  - Storybook workflow: `.github/workflows/storybook.yml` deploys to GitHub Pages on push to main when storybook-related files change. Also supports `workflow_dispatch` for manual deploys.
+  - Storybook preview.ts applies theme via `data-theme` attribute on `document.documentElement` — the global theme toolbar in Storybook is fully wired up for all 7 themes.
+  - Storybook static build outputs to `apps/admin/storybook-static/` (gitignored). The CI workflow uploads this directory as a GitHub Pages artifact.
+  - `actions/configure-pages@v4` should always come before the build step in GitHub Pages workflows — it sets up environment variables for proper base URL handling.
+---
