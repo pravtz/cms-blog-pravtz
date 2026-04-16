@@ -951,3 +951,26 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Tag a11y E2E tests with `@a11y` in test name to allow running them separately: `playwright test --grep @a11y`
   - `disableRules(['color-contrast'])` in axe tests is appropriate when CSS custom properties (vars) are used — axe can't resolve CSS vars to actual color values at runtime in all cases
 ---
+
+## 2026-04-16 - US-44
+- Implemented Admin Releases screen with full CRUD (version, date, type, changelog in rendered Markdown)
+- Added "Current version" badge on the active release (is_current flag)
+- Accordion-style release list with expand/collapse, auto-expanding current/latest
+- Links to commits and PR per release
+- "New version available" info banner in admin layout for Owner role (when latest release != current)
+- DB migration `022_releases` with is_current, type (major/minor/patch), commit_url, pr_url fields
+- Files changed:
+  - `apps/admin/src/lib/db.ts` — added migration `022_releases`
+  - `apps/admin/src/app/api/admin/releases/route.ts` — GET list + POST create
+  - `apps/admin/src/app/api/admin/releases/[id]/route.ts` — PUT update + DELETE
+  - `apps/admin/src/app/api/admin/releases/latest/route.ts` — GET current+latest for version check
+  - `apps/admin/src/app/admin/releases/page.tsx` — full UI with form modal, accordion timeline
+  - `apps/admin/src/app/admin/releases/page.module.css` — styling
+  - `apps/admin/src/components/AdminLayout/DynamicSidebar.tsx` — added Releases nav item
+  - `apps/admin/src/app/admin/layout.tsx` — added newVersionBanner state + fetch
+  - `apps/admin/src/app/admin/layout.module.css` — added .infoBanner styles
+- **Learnings for future iterations:**
+  - `AuthPayload.sub` is the user ID field (not `userId`) — see `apps/admin/src/lib/auth-middleware.ts`
+  - When declaring typed state with a const default object, declare the interface explicitly and type `useState<Interface>` to avoid literal type narrowing issues
+  - The `infoBanner` uses z-index: 89 (below criticalBanner at 90) so multiple banners stack correctly
+---

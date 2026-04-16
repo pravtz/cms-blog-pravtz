@@ -396,7 +396,7 @@
       "priority": 44,
       "version": "v1.0",
       "prd": "PRD-05",
-      "passes": false,
+      "passes": true,
       "description": "Admin Releases screen: list of releases with version, date, type (major/minor/patch), changelog in rendered markdown. 'Current version' badge on active release. Link to commits or PR. Version update check on startup with 'New version available' badge for Owner. Changelog page updated per release."
     },
     {
