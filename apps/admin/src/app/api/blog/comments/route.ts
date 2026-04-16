@@ -6,6 +6,12 @@ import { getDb } from '@/lib/db'
 import { requireAuth } from '@/lib/auth-middleware'
 import { randomUUID } from 'crypto'
 import { dispatchChannelNotification } from '@/lib/channel-notifications'
+import sanitizeHtml from 'sanitize-html'
+
+/** Strip all HTML from comment content — comments are stored and displayed as plain text. */
+function sanitizeComment(content: string): string {
+  return sanitizeHtml(content, { allowedTags: [], allowedAttributes: {} })
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -147,10 +153,11 @@ export async function POST(request: NextRequest) {
   }
 
   const id = randomUUID()
+  const sanitizedContent = sanitizeComment(content.trim())
   db.prepare(`
     INSERT INTO comments (id, post_id, parent_id, author_id, content, status)
     VALUES (?, ?, ?, ?, ?, 'visible')
-  `).run(id, postId, parentId ?? null, auth.payload.sub, content.trim())
+  `).run(id, postId, parentId ?? null, auth.payload.sub, sanitizedContent)
 
   // Send notifications
   const authorId = auth.payload.sub
