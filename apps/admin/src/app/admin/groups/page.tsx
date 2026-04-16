@@ -104,14 +104,14 @@ export default function GroupsPage() {
         <div className={styles.loading}>Loading groups…</div>
       ) : (
         <div className={styles.tableWrapper}>
-          <table className={styles.table}>
+          <table className={styles.table} aria-label="Groups list">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Members</th>
-                <th>Type</th>
-                <th>Actions</th>
+                <th scope="col">Name</th>
+                <th scope="col">Description</th>
+                <th scope="col">Members</th>
+                <th scope="col">Type</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>

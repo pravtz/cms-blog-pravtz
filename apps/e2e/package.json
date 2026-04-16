@@ -6,11 +6,13 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
+    "test:a11y": "playwright test --grep @a11y",
     "install-browsers": "playwright install --with-deps chromium",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'No ESLint for e2e package'"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.9.1",
     "@playwright/test": "^1.44.0",
     "@types/node": "^20.12.0"
   }

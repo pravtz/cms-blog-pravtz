@@ -374,16 +374,16 @@ export default function MetricsPage() {
               <p className={styles.chartEmpty}>No published posts yet.</p>
             ) : (
               <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+                <table className={styles.table} aria-label="Top posts by engagement">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Title</th>
-                      <th>Category</th>
-                      <th>Views</th>
-                      <th>Likes</th>
-                      <th>Comments</th>
-                      <th>Engagement</th>
+                      <th scope="col">#</th>
+                      <th scope="col">Title</th>
+                      <th scope="col">Category</th>
+                      <th scope="col">Views</th>
+                      <th scope="col">Likes</th>
+                      <th scope="col">Comments</th>
+                      <th scope="col">Engagement</th>
                     </tr>
                   </thead>
                   <tbody>

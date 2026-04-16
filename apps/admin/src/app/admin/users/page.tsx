@@ -234,14 +234,14 @@ function UsersContent() {
         <div className={styles.loading}>Loading users…</div>
       ) : (
         <div className={styles.tableWrapper}>
-          <table className={styles.table}>
+          <table className={styles.table} aria-label="Users list">
             <thead>
               <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
+                <th scope="col">User</th>
+                <th scope="col">Role</th>
+                <th scope="col">Status</th>
+                <th scope="col">Joined</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>

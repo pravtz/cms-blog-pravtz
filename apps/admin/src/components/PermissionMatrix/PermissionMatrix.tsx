@@ -30,9 +30,9 @@ export default function PermissionMatrix({
       <table className={styles.table} role="grid" aria-label="Permission matrix">
         <thead>
           <tr>
-            <th className={styles.resourceHeader}>Resource</th>
+            <th scope="col" className={styles.resourceHeader}>Resource</th>
             {ALL_OPERATIONS.map((op) => (
-              <th key={op} className={styles.opHeader}>
+              <th key={op} scope="col" className={styles.opHeader}>
                 {OPERATION_LABELS[op]}
               </th>
             ))}
@@ -41,7 +41,7 @@ export default function PermissionMatrix({
         <tbody>
           {ALL_RESOURCES.map((resource) => (
             <tr key={resource} className={styles.row}>
-              <td className={styles.resourceLabel}>{RESOURCE_LABELS[resource]}</td>
+              <th scope="row" className={styles.resourceLabel}>{RESOURCE_LABELS[resource]}</th>
               {ALL_OPERATIONS.map((operation) => {
                 const checked = permissions[resource]?.[operation] ?? false
                 const id = `perm-${resource}-${operation}`

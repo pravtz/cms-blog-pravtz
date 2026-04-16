@@ -164,17 +164,17 @@ export default function PostsPage() {
         </div>
       ) : (
         <div className={styles.tableWrapper}>
-          <table className={styles.table}>
+          <table className={styles.table} aria-label="Posts list">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Language</th>
-                <th>Visibility</th>
-                <th>Category</th>
-                <th>Read time</th>
-                <th>Updated</th>
-                <th>Actions</th>
+                <th scope="col">Title</th>
+                <th scope="col">Status</th>
+                <th scope="col">Language</th>
+                <th scope="col">Visibility</th>
+                <th scope="col">Category</th>
+                <th scope="col">Read time</th>
+                <th scope="col">Updated</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>

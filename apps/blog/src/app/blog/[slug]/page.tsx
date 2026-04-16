@@ -128,7 +128,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
       <FloatingProgressBar />
 
-      <main className={styles.main}>
+      <main id="main-content" className={styles.main}>
         <div className={styles.container}>
           <ArticleHeader post={post} />
           {isRestricted ? (

@@ -48,6 +48,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} ${newsreader.variable}`}>
       <body>
+        <a href="#main-content" className="skip-link">
+          Pular para o conteúdo principal
+        </a>
         <ClarityScript />
         {children}
       </body>

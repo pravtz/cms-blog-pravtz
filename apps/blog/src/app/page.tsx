@@ -94,7 +94,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className={styles.main}>
+      <main id="main-content" className={styles.main}>
         {heroPost && <HeroSection post={heroPost} />}
 
         <div className={styles.body}>

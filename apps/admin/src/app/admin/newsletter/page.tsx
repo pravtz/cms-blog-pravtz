@@ -164,14 +164,14 @@ export default function NewsletterPage() {
       ) : (
         <>
           <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+            <table className={styles.table} aria-label="Newsletter subscribers">
               <thead>
                 <tr>
-                  <th>E-mail</th>
-                  <th>Status</th>
-                  <th>Confirmado em</th>
-                  <th>Inscrito em</th>
-                  <th>Ações</th>
+                  <th scope="col">E-mail</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Confirmado em</th>
+                  <th scope="col">Inscrito em</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>

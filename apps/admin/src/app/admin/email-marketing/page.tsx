@@ -263,16 +263,16 @@ export default function EmailMarketingPage() {
       ) : (
         <>
           <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+            <table className={styles.table} aria-label="Email campaigns">
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Assunto</th>
-                  <th>Status</th>
-                  <th>Destinatários</th>
-                  <th>Enviados</th>
-                  <th>Data</th>
-                  <th>Ações</th>
+                  <th scope="col">Nome</th>
+                  <th scope="col">Assunto</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Destinatários</th>
+                  <th scope="col">Enviados</th>
+                  <th scope="col">Data</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>

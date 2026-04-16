@@ -71,6 +71,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <ToastProvider>
+      <a href="#main-content" className={styles.skipLink}>
+        Skip to main content
+      </a>
       <div className={styles.appShell}>
         <DynamicSidebar pendingCount={pendingCount} />
 
@@ -101,9 +104,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           )}
 
-          <div className={styles.content}>
+          <main id="main-content" className={styles.content}>
             {children}
-          </div>
+          </main>
         </div>
 
         {/* FAB - New Post */}

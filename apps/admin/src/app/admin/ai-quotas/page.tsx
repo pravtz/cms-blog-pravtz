@@ -457,16 +457,16 @@ export default function AiQuotasPage() {
           </p>
         ) : (
           <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+            <table className={styles.table} aria-label="User AI quotas">
               <thead>
                 <tr>
-                  <th>Usuário</th>
-                  <th>IA Ativa</th>
-                  <th>Uso do mês</th>
-                  <th>Cota mensal (tokens)</th>
-                  <th>Reset mensal</th>
-                  <th>Acumular</th>
-                  <th>Ações</th>
+                  <th scope="col">Usuário</th>
+                  <th scope="col">IA Ativa</th>
+                  <th scope="col">Uso do mês</th>
+                  <th scope="col">Cota mensal (tokens)</th>
+                  <th scope="col">Reset mensal</th>
+                  <th scope="col">Acumular</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
