@@ -387,7 +387,7 @@
       "priority": 43,
       "version": "v1.0",
       "prd": "PRD-01",
-      "passes": false,
+      "passes": true,
       "description": "Run axe-core via Playwright on every page across all 7 themes. Zero AA violations required. Verify: all contrast ratios (4.5:1 normal, 3:1 large+UI), keyboard navigation (logical tab order, focus-visible on all interactive elements), focus traps in modals/drawers, Escape closes overlays, semantic HTML (main/nav/header/footer/article/aside/section, correct heading hierarchy), ARIA attributes (aria-expanded, aria-live, aria-current, role=dialog+aria-labelledby), screen reader compatibility (sr-only, aria-live toasts), table captions+th scope."
     },
     {

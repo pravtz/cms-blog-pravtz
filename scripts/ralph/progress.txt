@@ -1,4 +1,8 @@
 ## Codebase Patterns
+- A11y: All `<table>` `<th>` elements must have `scope="col"` (column headers) or `scope="row"` (row headers). PermissionMatrix row headers use `<th scope="row">` instead of `<td>`. Always add `aria-label` to data tables.
+- A11y: Admin layout has a `.skipLink` CSS class for a visually-hidden skip-to-main-content link (revealed on `:focus`). The main content area uses `id="main-content"`. Blog layout has `.skip-link` global CSS class for the same pattern.
+- A11y: Blog globals.css now has `:focus-visible` outline styles and `.sr-only` utility class. Admin globals.css already had both.
+- A11y: `@axe-core/playwright` installed in `apps/e2e`. E2E a11y tests tagged `@a11y` live in `07-accessibility.spec.ts`. Run with `playwright test --grep @a11y`.
 - SVG charts: use `viewBox="0 0 100 H" preserveAspectRatio="none"` for responsive line charts. Normalize X to 0-100 range, Y as fraction of maxVal. Grid lines with `strokeDasharray`. X-axis labels via `<text>` elements at computed x positions.
 - Chart component type: use `type ChartRow = { date: string } & Record<string, number | string>` for chart data rows; cast typed arrays with `as unknown as ChartRow[]` at call sites to avoid TS index signature conflicts.
 - `useToast()` returns `{ toast, dismiss }` — call `toast({ variant: 'success'|'error'|'warning'|'info', title: '...' })` (not `addToast`, not `type`).
@@ -898,4 +902,52 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - For comment/forum content, always strip all HTML tags — `sanitizeHtml(content, { allowedTags: [], allowedAttributes: {} })` is the right pattern for plain-text storage.
   - Blog's CSP must whitelist Microsoft Clarity domains (`https://www.clarity.ms`, `https://c.bing.com`) since it injects analytics scripts.
   - `BLOG_URL` and `ADMIN_URL` are exported from `playwright.config.ts` — E2E tests can import them directly instead of hardcoding URLs.
+---
+
+## 2026-04-16 - US-43
+- Installed `@axe-core/playwright` v4.9.1 in `apps/e2e`
+- Created comprehensive a11y test suite `apps/e2e/tests/07-accessibility.spec.ts` with 30+ tests tagged `@a11y`
+  - axe-core WCAG 2A/2AA/2.1AA checks on all admin pages (dashboard, posts, users, groups, comments, newsletter, audit, images, metrics, ideas, documentation, settings)
+  - axe-core checks on all blog pages (home, feed, post, newsletter confirm/unsubscribe, privacidade)
+  - Theme tests across all 7 themes (onyx, emerald, crimson, slate, amber, rose, violet) on dashboard
+  - Skip-link presence and main-content anchor verification
+  - Sidebar ARIA landmark and aria-current="page" tests
+  - Modal focus trap + Escape close tests
+  - Command palette accessibility (aria-label on input, Escape closes)
+  - Heading hierarchy validation
+  - Table scope attribute verification
+  - Image alt text check
+  - Icon-only button accessible label check
+  - aria-live="polite" on toast container
+  - Keyboard tabbing traversal count test
+  - Mobile nav drawer Escape close test
+  - Focus-visible ring test on form inputs
+- Added skip-to-main-content link to admin layout (`layout.tsx` + `layout.module.css`)
+- Added `id="main-content"` to admin `<main>` element
+- Added skip-to-main-content link to blog layout (`layout.tsx`)
+- Added `id="main-content"` to all blog `<main>` elements (home, feed, post pages)
+- Added `:focus-visible` outline styles and `.sr-only` + `.skip-link` utility classes to blog `globals.css`
+- Fixed `<th scope="col">` on all data tables across admin (users, posts, groups, newsletter, email-marketing, ai-quotas, metrics, audit)
+- Fixed `<th scope="row">` on PermissionMatrix row header cells (changed `<td>` to `<th scope="row">`)
+- Added `aria-label` to all data tables for screen readers
+- Files changed:
+  - apps/e2e/package.json (added @axe-core/playwright)
+  - apps/e2e/tests/07-accessibility.spec.ts (new file)
+  - apps/admin/src/app/admin/layout.tsx
+  - apps/admin/src/app/admin/layout.module.css
+  - apps/admin/src/components/PermissionMatrix/PermissionMatrix.tsx
+  - apps/admin/src/app/admin/{users,posts,groups,newsletter,email-marketing,ai-quotas,metrics,audit}/page.tsx
+  - apps/blog/src/app/layout.tsx
+  - apps/blog/src/app/globals.css
+  - apps/blog/src/app/page.tsx
+  - apps/blog/src/app/blog/page.tsx
+  - apps/blog/src/app/blog/[slug]/page.tsx
+- **Learnings for future iterations:**
+  - All `<th>` in data tables need `scope="col"` or `scope="row"` — axe-core flags this as a serious WCAG violation
+  - Use `aria-label` on `<table>` elements (not `<caption>`) for brief descriptions accessible to screen readers
+  - Blog app was missing `:focus-visible` styles and `.sr-only` — always include these in globals.css
+  - Skip links need both the CSS class (to hide/reveal on focus) AND a matching `id` on the target element
+  - `@axe-core/playwright` constructor takes `{ page }` as an object (not just `page`)
+  - Tag a11y E2E tests with `@a11y` in test name to allow running them separately: `playwright test --grep @a11y`
+  - `disableRules(['color-contrast'])` in axe tests is appropriate when CSS custom properties (vars) are used — axe can't resolve CSS vars to actual color values at runtime in all cases
 ---
