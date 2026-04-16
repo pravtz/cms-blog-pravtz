@@ -26,6 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingCount, setPendingCount] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [criticalBanner, setCriticalBanner] = useState<string | null>(null)
+  const [newVersionBanner, setNewVersionBanner] = useState<string | null>(null)
 
   const showLayout = !isAuthPath(pathname)
 
@@ -60,6 +61,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       })
       .catch(() => {})
   }, [showLayout, pathname])
+
+  // Check for new version available (Owner only)
+  useEffect(() => {
+    if (!showLayout) return
+    const token = localStorage.getItem('accessToken')
+    if (!token) return
+    let user: { role?: string } = {}
+    try { user = JSON.parse(localStorage.getItem('currentUser') ?? '{}') } catch { /* ignore */ }
+    if (user.role !== 'owner') return
+
+    fetch('/api/admin/releases/latest', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return
+        const { current, latest } = data as { current: { version: string } | null; latest: { version: string } | null }
+        if (latest && (!current || current.version !== latest.version)) {
+          setNewVersionBanner(`New version available: v${latest.version}`)
+        } else {
+          setNewVersionBanner(null)
+        }
+      })
+      .catch(() => {})
+  }, [showLayout])
 
   if (!showLayout) {
     return (
@@ -97,6 +123,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <button
                 className={styles.bannerClose}
                 onClick={() => setCriticalBanner(null)}
+                aria-label="Dismiss notification"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {newVersionBanner && (
+            <div className={styles.infoBanner} role="status">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+              <span>{newVersionBanner}</span>
+              <a href="/admin/releases" className={styles.bannerLink}>
+                View releases
+              </a>
+              <button
+                className={styles.bannerClose}
+                onClick={() => setNewVersionBanner(null)}
                 aria-label="Dismiss notification"
               >
                 ×

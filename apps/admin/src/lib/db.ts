@@ -471,6 +471,24 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_doc_versions_current ON doc_versions(is_current);
       CREATE INDEX IF NOT EXISTS idx_doc_versions_version ON doc_versions(version DESC);
     `,
+    '022_releases': `
+      CREATE TABLE IF NOT EXISTS releases (
+        id TEXT PRIMARY KEY,
+        version TEXT NOT NULL UNIQUE,
+        release_date TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'patch',
+        changelog TEXT NOT NULL DEFAULT '',
+        commit_url TEXT,
+        pr_url TEXT,
+        is_current INTEGER NOT NULL DEFAULT 0,
+        created_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_releases_date ON releases(release_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_releases_current ON releases(is_current);
+    `,
   }
 
   const applied = database

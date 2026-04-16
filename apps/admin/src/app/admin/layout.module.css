@@ -70,6 +70,39 @@
   opacity: 0.7;
 }
 
+.infoBanner {
+  position: fixed;
+  top: 56px;
+  left: 64px;
+  right: 0;
+  z-index: 89;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+}
+
+.infoBanner .bannerLink {
+  color: var(--accent);
+  font-weight: var(--font-semibold);
+  text-decoration: underline;
+  margin-left: auto;
+}
+
+.infoBanner .bannerClose {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+  line-height: 1;
+}
+
 .content {
   margin-top: 56px;
   flex: 1;
