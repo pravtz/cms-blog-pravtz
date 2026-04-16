@@ -378,7 +378,7 @@
       "priority": 42,
       "version": "v1.0",
       "prd": "PRD-09",
-      "passes": false,
+      "passes": true,
       "description": "Run OWASP ZAP automated scan against the full application. Fix all high and medium severity findings. Manually verify: authentication, authorization, rate limiting, XSS (DOMPurify on all free-text fields), SQL injection (prepared statements only), CSRF (tokens + SameSite=Strict), security headers on all responses. Validate headers via securityheaders.com equivalent in E2E tests."
     },
     {

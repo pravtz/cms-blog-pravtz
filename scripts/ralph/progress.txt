@@ -872,3 +872,30 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - `react-markdown` + `remark-gfm` is already installed as transitive dep; use CSS `:global()` in CSS Modules to style dangerouslySetInnerHTML / ReactMarkdown output
   - For read-all → write-restricted pages: use `resolvePermission(db, payload.sub, payload.role, 'settings', 'write')` in API route; in client use localStorage role check to show/hide edit button
 ---
+
+## 2026-04-16 - US-42
+- Implemented security audit fixes and validation suite
+- Added HTTP security headers to `apps/admin/next.config.js` and `apps/blog/next.config.js` via `async headers()`:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+  - `Content-Security-Policy` with strict directives (frame-src 'none', object-src 'none', base-uri 'self')
+- Added `sanitizeHtml` (strip all tags) to comment content in `apps/admin/src/app/api/blog/comments/route.ts` before DB storage
+- Added Playwright E2E test file `apps/e2e/tests/06-security-headers.spec.ts` covering:
+  - Security headers on admin HTML pages, API routes, and error responses
+  - Security headers on blog home/feed pages
+  - v1 Public API security + rate-limit headers
+  - XSS: comment endpoint rejects unauthenticated submissions
+  - Auth: brute-force triggers 429 after 5 failures; protected routes return 401
+  - Rate limiting: v1 API X-RateLimit-* headers present
+- Verified: auth uses SameSite=Strict httpOnly cookies (CSRF protection), all DB queries use prepared statements (SQL injection protection), MDX content already uses sanitize-html
+- Files changed: `apps/admin/next.config.js`, `apps/blog/next.config.js`, `apps/admin/src/app/api/blog/comments/route.ts`, `apps/e2e/tests/06-security-headers.spec.ts`
+- **Learnings for future iterations:**
+  - Next.js `async headers()` in `next.config.js` applies headers to ALL routes (HTML + API). This is the canonical place for global security headers; individual route handlers can add extra headers on top (v1 API does this via `buildV1Headers()`).
+  - For comment/forum content, always strip all HTML tags — `sanitizeHtml(content, { allowedTags: [], allowedAttributes: {} })` is the right pattern for plain-text storage.
+  - Blog's CSP must whitelist Microsoft Clarity domains (`https://www.clarity.ms`, `https://c.bing.com`) since it injects analytics scripts.
+  - `BLOG_URL` and `ADMIN_URL` are exported from `playwright.config.ts` — E2E tests can import them directly instead of hardcoding URLs.
+---
