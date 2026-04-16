@@ -856,3 +856,19 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - Storybook static build outputs to `apps/admin/storybook-static/` (gitignored). The CI workflow uploads this directory as a GitHub Pages artifact.
   - `actions/configure-pages@v4` should always come before the build step in GitHub Pages workflows — it sets up environment variables for proper base URL handling.
 ---
+
+## 2026-04-16 - US-41
+- Implemented System Documentation page at /admin/documentation
+- Added DB migration `021_documentation` with `doc_versions` table (id, content, change_summary, author_id, version, is_current, created_at)
+- Created API routes: GET/PUT `/api/admin/docs`, GET `/api/admin/docs/history`, POST `/api/admin/docs/restore`
+- Documentation page renders markdown via `react-markdown` + `remark-gfm` with themed styles
+- Edit mode: textarea + optional change summary; only users with `settings:write` or owner role can edit
+- Version history panel: collapsible sidebar, shows all versions with author/date; restore creates a new version
+- Added "Documentation" entry to the sidebar navigation (between C4 Architecture and Settings)
+- Permission check uses `resolvePermission(db, userId, role, 'settings', 'write')` — same pattern as other settings-related writes
+- Files changed: apps/admin/src/lib/db.ts, apps/admin/src/__tests__/helpers/db.ts, apps/admin/src/app/api/admin/docs/route.ts, apps/admin/src/app/api/admin/docs/history/route.ts, apps/admin/src/app/api/admin/docs/restore/route.ts, apps/admin/src/app/admin/documentation/page.tsx, apps/admin/src/app/admin/documentation/page.module.css, apps/admin/src/components/AdminLayout/DynamicSidebar.tsx
+- **Learnings for future iterations:**
+  - Documentation page follows the same version pattern as C4 diagrams (021_documentation migration, doc_versions table, is_current flag, restore creates new version)
+  - `react-markdown` + `remark-gfm` is already installed as transitive dep; use CSS `:global()` in CSS Modules to style dangerouslySetInnerHTML / ReactMarkdown output
+  - For read-all → write-restricted pages: use `resolvePermission(db, payload.sub, payload.role, 'settings', 'write')` in API route; in client use localStorage role check to show/hide edit button
+---
