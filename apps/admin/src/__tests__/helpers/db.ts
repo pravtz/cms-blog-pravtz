@@ -330,6 +330,20 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_c4_level_current ON c4_diagrams(level, is_current);
       CREATE INDEX IF NOT EXISTS idx_c4_level_version ON c4_diagrams(level, version DESC);
     `,
+    '021_documentation': `
+      CREATE TABLE IF NOT EXISTS doc_versions (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL DEFAULT '',
+        change_summary TEXT,
+        author_id TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        is_current INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (author_id) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_doc_versions_current ON doc_versions(is_current);
+      CREATE INDEX IF NOT EXISTS idx_doc_versions_version ON doc_versions(version DESC);
+    `,
   }
 
   const applied = database
