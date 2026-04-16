@@ -150,3 +150,56 @@ export const WithForm: Story = {
     </ModalDemo>
   ),
 }
+
+// --- All Themes ---
+
+const THEMES = [
+  { id: 'onyx',    label: 'Onyx',    bg: '#0f0f0f' },
+  { id: 'emerald', label: 'Emerald', bg: '#0a0f0c' },
+  { id: 'crimson', label: 'Crimson', bg: '#0f0a0a' },
+  { id: 'slate',   label: 'Slate',   bg: '#0d0f14' },
+  { id: 'amber',   label: 'Amber',   bg: '#0f0d08' },
+  { id: 'rose',    label: 'Rose',    bg: '#0f090d' },
+  { id: 'violet',  label: 'Violet',  bg: '#0c0a10' },
+] as const
+
+function ThemedModalButton({ themeId, label, bg }: { themeId: string; label: string; bg: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      data-theme={themeId === 'onyx' ? undefined : themeId}
+      style={{ background: bg, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}
+    >
+      <span style={{ color: '#f2f2f2', fontSize: '0.75rem', width: '56px', flexShrink: 0 }}>{label}</span>
+      <Button size="sm" onClick={() => setOpen(true)}>Open Modal</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`${label} Theme Modal`}
+        description="Theme preview modal."
+        footer={
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={() => setOpen(false)}>Confirm</Button>
+          </div>
+        }
+      >
+        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          This modal is rendered with the <strong style={{ color: 'var(--text-primary)' }}>{label}</strong> theme tokens applied.
+        </p>
+      </Modal>
+    </div>
+  )
+}
+
+export const AllThemes: Story = {
+  name: 'All Themes',
+  parameters: { controls: { disable: true }, backgrounds: { disable: true } },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {THEMES.map(({ id, label, bg }) => (
+        <ThemedModalButton key={id} themeId={id} label={label} bg={bg} />
+      ))}
+    </div>
+  ),
+}
