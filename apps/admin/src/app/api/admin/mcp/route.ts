@@ -58,26 +58,3 @@ export async function POST(request: NextRequest) {
   // Return the raw key ONCE — it will never be shown again
   return NextResponse.json({ id, name, key: rawKey, key_prefix: keyPrefix }, { status: 201 })
 }
-
-// Revoke an MCP API key (Owner only)
-export async function DELETE(request: NextRequest) {
-  const auth = requireRole(request, 'owner')
-  if (auth instanceof NextResponse) return auth
-
-  const { searchParams } = new URL(request.url)
-  const id = searchParams.get('id')
-  if (!id) {
-    return NextResponse.json({ error: 'Key id is required.' }, { status: 400 })
-  }
-
-  const db = getDb()
-  const key = db.prepare('SELECT id FROM mcp_api_keys WHERE id = ? AND revoked = 0').get(id) as
-    | { id: string }
-    | undefined
-  if (!key) {
-    return NextResponse.json({ error: 'Key not found or already revoked.' }, { status: 404 })
-  }
-
-  db.prepare(`UPDATE mcp_api_keys SET revoked = 1 WHERE id = ?`).run(id)
-  return NextResponse.json({ message: 'Key revoked successfully.' })
-}

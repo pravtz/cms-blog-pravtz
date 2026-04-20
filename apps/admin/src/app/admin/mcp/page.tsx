@@ -95,7 +95,7 @@ export default function McpPage() {
     if (!confirm('Revoke this API key? Any agent using it will lose access immediately.')) return
     setRevoking(id)
     try {
-      const res = await fetch(`/api/admin/mcp?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/admin/mcp/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}` },
       })

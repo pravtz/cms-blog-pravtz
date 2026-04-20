@@ -974,3 +974,18 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - When declaring typed state with a const default object, declare the interface explicitly and type `useState<Interface>` to avoid literal type narrowing issues
   - The `infoBanner` uses z-index: 89 (below criticalBanner at 90) so multiple banners stack correctly
 ---
+
+## 2026-04-20 - US-45
+- Implemented MCP (Model Context Protocol) server support for Nexus CMS extensibility
+- Created `packages/mcp-server/` — standalone Node.js package using `@modelcontextprotocol/sdk` (stdio transport). Bridges MCP protocol to Nexus HTTP API.
+- Created `apps/admin/src/app/api/mcp/route.ts` — HTTP endpoint (`GET` for discovery, `POST` for tool execution). Auth via `mcp_` prefixed API keys (SHA-256 hashed). Supports 8 tools: list_posts, get_post, create_post, update_post, publish_post, list_categories, list_tags, search_posts.
+- Created `apps/admin/src/app/api/admin/mcp/route.ts` — Owner-only key management (GET list, POST create). `[id]/route.ts` for DELETE (revoke).
+- Added DB migration `023_mcp_api_keys` to `apps/admin/src/lib/db.ts`.
+- Created `apps/admin/src/app/admin/mcp/page.tsx` — Admin UI with architecture diagram, tool reference, API key management (create/revoke), and setup instructions.
+- Added MCP Integration link to `DynamicSidebar.tsx`.
+- **Learnings for future iterations:**
+  - `@modelcontextprotocol/sdk` requires `npm install` in `packages/mcp-server/` separately (it's not in root node_modules until the sub-package is installed). The SDK requires node >=22 but works on node 20 in practice.
+  - MCP API keys use `mcp_` prefix + 32 random hex bytes; stored as SHA-256 hash in DB; shown only once at creation.
+  - The `[id]` directory in Next.js App Router: escape brackets in shell commands with quotes: `cat "/workspace/apps/admin/src/app/api/admin/mcp/[id]/route.ts"`.
+  - Revoke endpoint is at `DELETE /api/admin/mcp/[id]` (separate dynamic route file), not on the collection route.
+---
