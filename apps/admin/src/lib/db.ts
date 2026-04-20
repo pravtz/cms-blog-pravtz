@@ -489,6 +489,21 @@ function runMigrations(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_releases_date ON releases(release_date DESC);
       CREATE INDEX IF NOT EXISTS idx_releases_current ON releases(is_current);
     `,
+    '023_mcp_api_keys': `
+      CREATE TABLE IF NOT EXISTS mcp_api_keys (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        key_hash TEXT NOT NULL UNIQUE,
+        key_prefix TEXT NOT NULL,
+        created_by TEXT NOT NULL,
+        last_used_at TEXT,
+        revoked INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_mcp_api_keys_hash ON mcp_api_keys(key_hash);
+      CREATE INDEX IF NOT EXISTS idx_mcp_api_keys_revoked ON mcp_api_keys(revoked);
+    `,
   }
 
   const applied = database
