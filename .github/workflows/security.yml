@@ -1,0 +1,90 @@
+name: Security Scan (OWASP ZAP)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to scan (defaults to local docker compose stack)'
+        required: false
+        default: ''
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare .env for compose
+        run: |
+          cat > .env <<'EOF'
+          NODE_ENV=production
+          JWT_SECRET=zap_scan_jwt_secret_at_least_32_characters_long
+          JWT_REFRESH_SECRET=zap_scan_refresh_secret_at_least_32_characters_long
+          REDIS_PASSWORD=zap_scan_redis_password
+          REDIS_URL=redis://:zap_scan_redis_password@redis:6379
+          DATA_DIR=/data
+          HTTP_PORT=8080
+          HTTPS_PORT=8443
+          BLOG_URL=http://localhost:8080
+          ADMIN_URL=http://admin:3001
+          EOF
+
+      - name: Build and start application stack
+        run: |
+          docker compose -f docker-compose.yml build --pull
+          docker compose -f docker-compose.yml up -d
+
+      - name: Wait for application to become healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/ >/dev/null 2>&1; then
+              echo "Application is up."
+              exit 0
+            fi
+            echo "Waiting for app... ($i/60)"
+            sleep 5
+          done
+          echo "Application failed to start in time."
+          docker compose -f docker-compose.yml logs --no-color
+          exit 1
+
+      - name: Run OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8080'
+          fail_action: true
+          allow_issue_writing: false
+          cmd_options: '-a -j'
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+          retention-days: 90
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.yml down -v

@@ -414,7 +414,7 @@
       "priority": 46,
       "version": "v1.0",
       "prd": "PRD-11",
-      "passes": false,
+      "passes": true,
       "description": "Create LICENSE (MIT or compatible open-source license), CONTRIBUTING.md (setup, branching strategy, PR process, coding standards, test requirements), CODE_OF_CONDUCT.md (Contributor Covenant), SECURITY.md (responsible disclosure process, security contact). All files in repository root."
     },
     {
@@ -423,7 +423,7 @@
       "priority": 47,
       "version": "v1.0",
       "prd": "PRD-11",
-      "passes": false,
+      "passes": true,
       "description": "Configure full CI/CD pipeline (GitHub Actions or equivalent). Jobs: lint (ESLint + TypeScript check), test-unit (Vitest), test-integ (Testcontainers), test-e2e (Playwright, all critical flows), test-a11y (axe-core via Playwright, zero AA violations), build (docker compose build), security (OWASP ZAP, releases only). Merge to main blocked if any job fails."
     }
   ]

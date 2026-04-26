@@ -1,0 +1,242 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Lint — ESLint across all workspaces
+  # ───────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Typecheck — TypeScript across all workspaces
+  # ───────────────────────────────────────────────────────────────────────────
+  typecheck:
+    name: Typecheck (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript compiler
+        run: npm run typecheck
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Unit tests — Vitest, src/__tests__/unit
+  # ───────────────────────────────────────────────────────────────────────────
+  test-unit:
+    name: Unit tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: apps/admin
+        run: npx vitest run src/__tests__/unit
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Integration tests — Vitest with in-memory SQLite (Testcontainers-style)
+  # ───────────────────────────────────────────────────────────────────────────
+  test-integ:
+    name: Integration tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run integration tests
+        working-directory: apps/admin
+        env:
+          JWT_SECRET: ci-test-jwt-secret-at-least-32-characters
+          JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-characters
+        run: npx vitest run src/__tests__/integration
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # E2E tests — Playwright (excludes @a11y)
+  # ───────────────────────────────────────────────────────────────────────────
+  test-e2e:
+    name: E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: apps/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests (excluding @a11y)
+        working-directory: apps/e2e
+        env:
+          CI: 'true'
+          JWT_SECRET: e2e-test-jwt-secret-at-least-32chars
+          JWT_REFRESH_SECRET: e2e-test-refresh-secret-32chars
+        run: npx playwright test --grep-invert @a11y
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e
+          path: apps/e2e/playwright-report/
+          retention-days: 14
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # A11y tests — axe-core via Playwright (zero AA violations required)
+  # ───────────────────────────────────────────────────────────────────────────
+  test-a11y:
+    name: A11y tests (axe-core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: apps/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run A11y tests (axe-core)
+        working-directory: apps/e2e
+        env:
+          CI: 'true'
+          JWT_SECRET: e2e-test-jwt-secret-at-least-32chars
+          JWT_REFRESH_SECRET: e2e-test-refresh-secret-32chars
+        run: npx playwright test --grep @a11y
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-a11y
+          path: apps/e2e/playwright-report/
+          retention-days: 14
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Build — Docker Compose images
+  # ───────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build (Docker Compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare .env for compose
+        run: |
+          cat > .env <<'EOF'
+          NODE_ENV=production
+          JWT_SECRET=ci_build_jwt_secret_at_least_32_characters_long
+          JWT_REFRESH_SECRET=ci_build_refresh_secret_at_least_32_characters_long
+          REDIS_PASSWORD=ci_build_redis_password
+          REDIS_URL=redis://:ci_build_redis_password@redis:6379
+          DATA_DIR=/data
+          HTTP_PORT=80
+          HTTPS_PORT=443
+          BLOG_URL=http://localhost
+          ADMIN_URL=http://admin:3001
+          EOF
+
+      - name: Build all services
+        run: docker compose -f docker-compose.yml build --pull
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Aggregator — single required check that gates merges to main
+  # ───────────────────────────────────────────────────────────────────────────
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - typecheck
+      - test-unit
+      - test-integ
+      - test-e2e
+      - test-a11y
+      - build
+    if: always()
+    steps:
+      - name: Verify all required jobs succeeded
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] \
+            || [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required CI jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required CI jobs succeeded."

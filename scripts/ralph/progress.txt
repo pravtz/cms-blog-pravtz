@@ -20,6 +20,9 @@
 - AIImageGenerator component lives in `apps/admin/src/components/AIImageGenerator/` — crop is canvas-based using relative mouse coords (no external library needed).
 - CodeMirror: `Annotation.define<T>()` is for transaction metadata; `StateEffect.define<T>()` is for state updates — they are NOT interchangeable. Use `Annotation` when you need to mark a transaction without changing state.
 - CodeMirror: `view.state.field(field, false)` returns `undefined` (not throw) when field not registered — use the second `false` arg for safe optional access.
+- CI: GitHub Actions workflows live in `.github/workflows/`. `ci.yml` runs lint/typecheck/unit/integ/e2e/a11y/build on PR + push to main; `ci-success` is the aggregator job that gates merges. `security.yml` runs OWASP ZAP only on `release: published` + manual dispatch. `storybook.yml` deploys storybook to GH Pages on main pushes.
+- CI: split unit vs integration vitest runs by passing the directory: `npx vitest run src/__tests__/unit` vs `src/__tests__/integration`. Both work without external deps because integration tests mock `@/lib/db`.
+- CI: split e2e vs a11y playwright runs with `--grep @a11y` and `--grep-invert @a11y`. Playwright config already starts admin+blog dev servers via `webServer` blocks — no extra setup needed.
 
 - Admin layout (`apps/admin/src/app/admin/layout.tsx`): client component; skips sidebar/header for AUTH_PATHS (login, setup, register, confirm-email, interests); auth guard redirects to login if no accessToken in localStorage; includes ToastProvider for all admin pages.
 - AccessToken flow: login API returns `accessToken` in body → stored in `localStorage.setItem('accessToken', ...)` + `localStorage.setItem('currentUser', JSON.stringify(user))` in login-form.tsx. All protected client pages read `localStorage.getItem('accessToken')` and send as `Authorization: Bearer <token>`.
@@ -988,4 +991,23 @@ Started: Sat Apr  4 12:25:18 PDT 2026
   - MCP API keys use `mcp_` prefix + 32 random hex bytes; stored as SHA-256 hash in DB; shown only once at creation.
   - The `[id]` directory in Next.js App Router: escape brackets in shell commands with quotes: `cat "/workspace/apps/admin/src/app/api/admin/mcp/[id]/route.ts"`.
   - Revoke endpoint is at `DELETE /api/admin/mcp/[id]` (separate dynamic route file), not on the collection route.
+---
+
+## 2026-04-26 - US-47
+- Added complete CI/CD pipeline at `.github/workflows/ci.yml` with parallel jobs: lint (ESLint), typecheck (tsc), test-unit (Vitest), test-integ (Vitest), test-e2e (Playwright excluding @a11y), test-a11y (Playwright @a11y), build (`docker compose build`).
+- Added `ci-success` aggregator job that uses `needs: [...all jobs]` + `if: always()` + `contains(needs.*.result, 'failure')` check — gives one required check for branch protection on `main`.
+- Added `.github/workflows/security.yml` for OWASP ZAP baseline scan (releases + manual dispatch only, per PRD requirement). Boots full docker compose stack on port 8080, waits for health, runs `zaproxy/action-baseline@v0.12.0`, uploads HTML/MD/JSON reports.
+- Updated `CONTRIBUTING.md` with a CI section documenting all jobs and the branch-protection setup.
+- Files changed:
+  - `.github/workflows/ci.yml` (new)
+  - `.github/workflows/security.yml` (new)
+  - `CONTRIBUTING.md` (added CI section)
+- **Learnings for future iterations:**
+  - GitHub Actions `if: always()` + `contains(needs.*.result, 'failure')` is the canonical pattern for an aggregator job that fails when any dependent job fails or is cancelled.
+  - `npm ci` requires `package-lock.json` at the repo root — confirmed present.
+  - Playwright `webServer` config keys off `process.env.CI` to set `reuseExistingServer: false` automatically — no override needed in the workflow.
+  - The existing `storybook.yml` workflow uses `actions/configure-pages@v4` + `actions/deploy-pages@v4` for GH Pages — no conflict with the new CI workflow.
+  - `docker compose build --pull` needs an `.env` file with required vars (JWT_SECRET, REDIS_PASSWORD, etc.) — generate one in the workflow before building.
+  - `zaproxy/action-baseline@v0.12.0` `fail_action: true` aborts the workflow on findings; `allow_issue_writing: false` prevents the action from auto-creating GitHub Issues (we upload artifact reports instead).
+  - For YAML validation locally: `npx js-yaml file.yml` works without installing pyyaml.
 ---
