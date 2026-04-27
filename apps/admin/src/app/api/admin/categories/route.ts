@@ -11,7 +11,6 @@ interface CategoryRow {
   id: string
   name: string
   slug: string
-  created_at: string
   post_count: number
 }
 
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   const categories = db
     .prepare(
-      `SELECT c.id, c.name, c.slug, c.created_at,
+      `SELECT c.id, c.name, c.slug,
           COUNT(p.id) AS post_count
        FROM categories c
        LEFT JOIN posts p ON p.category_id = c.id
@@ -80,12 +79,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  db.prepare(
-    'INSERT INTO categories (id, name, slug, created_at) VALUES (?, ?, ?, datetime("now"))'
-  ).run(id, name, slug)
+  db.prepare('INSERT INTO categories (id, name, slug) VALUES (?, ?, ?)').run(id, name, slug)
 
   const category = db
-    .prepare('SELECT id, name, slug, created_at FROM categories WHERE id = ?')
+    .prepare('SELECT id, name, slug FROM categories WHERE id = ?')
     .get(id) as CategoryRow
 
   return NextResponse.json({ category }, { status: 201 })

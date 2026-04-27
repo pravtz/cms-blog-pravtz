@@ -3,26 +3,89 @@ import { getSetting } from './db'
 
 export const runtime = 'nodejs'
 
-function getTransporter() {
-  const host = getSetting('smtp_host')
-  const portStr = getSetting('smtp_port')
-  const user = getSetting('smtp_user')
-  const pass = getSetting('smtp_pass')
+const LOCAL_SMTP_HOST = 'mailhog'
+const LOCAL_SMTP_PORT = 1025
+const DEFAULT_FROM_ADDRESS = 'noreply@nexuscms.local'
 
-  if (!host || !portStr) {
+export interface ResolvedSmtpConfig {
+  host: string
+  port: number
+  secure: boolean
+  from: string
+  auth?: {
+    user: string
+    pass: string
+  }
+}
+
+function readSmtpValue(settingKey: string, envKey: string): string | null {
+  const settingValue = getSetting(settingKey)?.trim()
+  if (settingValue) {
+    return settingValue
+  }
+
+  const envValue = process.env[envKey]?.trim()
+  return envValue ? envValue : null
+}
+
+function parseSmtpPort(value: string | null): number | null {
+  if (!value) {
     return null
   }
 
-  return nodemailer.createTransport({
-    host,
-    port: Number(portStr),
-    secure: Number(portStr) === 465,
-    auth: user && pass ? { user, pass } : undefined,
-  })
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return null
+  }
+
+  return port
 }
 
-function getFromAddress(): string {
-  return getSetting('smtp_from') ?? 'noreply@nexuscms.local'
+function isLocalFallbackEnvironment(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+}
+
+export function resolveSmtpConfig(): ResolvedSmtpConfig | null {
+  const configuredHost = readSmtpValue('smtp_host', 'SMTP_HOST')
+  const configuredPort = parseSmtpPort(readSmtpValue('smtp_port', 'SMTP_PORT'))
+  const user = readSmtpValue('smtp_user', 'SMTP_USER')
+  const pass = readSmtpValue('smtp_pass', 'SMTP_PASS')
+  const from =
+    readSmtpValue('smtp_from', 'SMTP_FROM') ?? DEFAULT_FROM_ADDRESS
+
+  const host =
+    configuredHost ?? (isLocalFallbackEnvironment() ? LOCAL_SMTP_HOST : null)
+  const port =
+    configuredPort ?? (isLocalFallbackEnvironment() ? LOCAL_SMTP_PORT : null)
+
+  if (!host || !port) {
+    return null
+  }
+
+  return {
+    host,
+    port,
+    secure: port === 465,
+    from,
+    auth: user && pass ? { user, pass } : undefined,
+  }
+}
+
+function getEmailClient() {
+  const config = resolveSmtpConfig()
+  if (!config) {
+    return null
+  }
+
+  return {
+    from: config.from,
+    transporter: nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: config.auth,
+    }),
+  }
 }
 
 function getBlogUrl(): string {
@@ -34,8 +97,8 @@ export async function sendEmailConfirmation(
   name: string,
   token: string
 ): Promise<void> {
-  const transporter = getTransporter()
-  if (!transporter) {
+  const client = getEmailClient()
+  if (!client) {
     console.warn('[email] SMTP not configured — skipping email confirmation send')
     return
   }
@@ -43,8 +106,8 @@ export async function sendEmailConfirmation(
   const blogUrl = getBlogUrl()
   const confirmUrl = `${blogUrl}/admin/confirm-email?token=${token}`
 
-  await transporter.sendMail({
-    from: getFromAddress(),
+  await client.transporter.sendMail({
+    from: client.from,
     to,
     subject: 'Confirm your email — Nexus CMS',
     text: `Hi ${name},\n\nPlease confirm your email address by visiting:\n\n${confirmUrl}\n\nThis link expires in 24 hours.\n\nIf you did not register, you can ignore this email.`,
@@ -60,16 +123,16 @@ export async function sendApprovalNotification(
   to: string,
   name: string
 ): Promise<void> {
-  const transporter = getTransporter()
-  if (!transporter) {
+  const client = getEmailClient()
+  if (!client) {
     console.warn('[email] SMTP not configured — skipping approval notification')
     return
   }
 
   const blogUrl = getBlogUrl()
 
-  await transporter.sendMail({
-    from: getFromAddress(),
+  await client.transporter.sendMail({
+    from: client.from,
     to,
     subject: 'Your Nexus CMS account has been approved',
     text: `Hi ${name},\n\nYour account has been approved. You can now sign in at:\n\n${blogUrl}/admin/login\n\nWelcome aboard!`,
@@ -83,14 +146,14 @@ export async function sendRejectionNotification(
   to: string,
   name: string
 ): Promise<void> {
-  const transporter = getTransporter()
-  if (!transporter) {
+  const client = getEmailClient()
+  if (!client) {
     console.warn('[email] SMTP not configured — skipping rejection notification')
     return
   }
 
-  await transporter.sendMail({
-    from: getFromAddress(),
+  await client.transporter.sendMail({
+    from: client.from,
     to,
     subject: 'Nexus CMS account registration update',
     text: `Hi ${name},\n\nWe regret to inform you that your account registration has not been approved at this time.\n\nIf you believe this is a mistake, please contact the administrator.`,
@@ -106,8 +169,8 @@ export async function sendNewsletterConfirmation(
   blogUrl: string,
   unsubscribeToken?: string
 ): Promise<void> {
-  const transporter = getTransporter()
-  if (!transporter) {
+  const client = getEmailClient()
+  if (!client) {
     console.warn('[email] SMTP not configured — skipping newsletter confirmation send')
     return
   }
@@ -124,8 +187,8 @@ export async function sendNewsletterConfirmation(
     ? `<p style="font-size:12px;color:#888;margin-top:24px;">Não quer mais receber? <a href="${unsubscribeUrl}">Cancelar inscrição</a></p>`
     : ''
 
-  await transporter.sendMail({
-    from: getFromAddress(),
+  await client.transporter.sendMail({
+    from: client.from,
     to,
     subject: 'Confirme sua inscrição na newsletter',
     text: `Obrigado por se inscrever!\n\nClique no link abaixo para confirmar sua inscrição:\n\n${confirmUrl}\n\nEste link expira em 48 horas.\n\nSe você não se inscreveu, pode ignorar este e-mail.${unsubscribeLine}`,
@@ -142,16 +205,16 @@ export async function sendOwnerPendingUserNotification(
   newUserName: string,
   newUserEmail: string
 ): Promise<void> {
-  const transporter = getTransporter()
-  if (!transporter) {
+  const client = getEmailClient()
+  if (!client) {
     console.warn('[email] SMTP not configured — skipping owner notification')
     return
   }
 
   const blogUrl = getBlogUrl()
 
-  await transporter.sendMail({
-    from: getFromAddress(),
+  await client.transporter.sendMail({
+    from: client.from,
     to: ownerEmail,
     subject: `New user pending approval — ${newUserName}`,
     text: `A new user has confirmed their email and is awaiting approval.\n\nName: ${newUserName}\nEmail: ${newUserEmail}\n\nReview and approve at: ${blogUrl}/admin/dashboard`,

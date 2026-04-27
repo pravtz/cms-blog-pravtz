@@ -1,123 +1,154 @@
 # Nexus CMS
 
-A self-hosted, Docker-based CMS for editorial blogs with an MDX editor, RBAC, AI features, and a public SSG blog frontend.
+Monorepo do Nexus CMS com painel administrativo em Next.js, blog público, suíte E2E em Playwright e um pacote de servidor MCP.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D20-43853d.svg)](https://nodejs.org)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
+O repositório mistura implementação em andamento com documentação de produto em `docs/` e `tasks/`. Este `README` descreve o que existe no checkout atual e como rodar o projeto localmente.
 
-## Overview
+## Estrutura
 
-Nexus CMS is a monorepo built with Next.js 14, TypeScript, SQLite, and Redis. It ships as a Docker Compose stack with everything required to run an editorial blog in production: an admin panel, a public SSG blog, a REST API v1, an MCP server, AI integrations, and a complete RBAC system.
-
-## Features
-
-- **MDX Editor** with split-view, live preview, frontmatter drawer, auto-save, and AI Ghost Writer autocomplete
-- **Public SSG Blog** with home, feed, post pages, search, filters, and full SEO (Open Graph, JSON-LD, hreflang, sitemaps)
-- **RBAC** — per-group and per-user permissions across every resource × operation
-- **Authentication** — JWT (access + refresh), bcrypt, brute-force protection, audit trail
-- **Comments, Likes, Shares** with moderation, voting, and anti-spam
-- **Newsletter** with Double Opt-in and LGPD compliance
-- **Multilingual posts** (pt-BR + EN) with hreflang and AI auto-translation
-- **AI features** — Ghost Writer, Image Generator, Trends Analysis, Auto-translation (OpenAI / Anthropic)
-- **Public REST API v1** — rate-limited, OpenAPI-documented
-- **MCP server** — programmatic access for AI agents and external tools
-- **7 themes** (Onyx, Emerald, Crimson, Slate, Amber, Rose, Violet) — all WCAG 2.1 AA certified
-- **Storybook** with full component documentation and a11y addon
-- **CI/CD** — lint, unit, integration, E2E, a11y, and security pipelines
-
-## Architecture
-
-```
-nexus-cms/
+```text
+.
 ├── apps/
-│   ├── admin/         # Next.js 14 — admin panel + REST API + MCP
-│   ├── blog/          # Next.js 14 — public SSG blog
-│   └── e2e/           # Playwright E2E suite
+│   ├── admin/        # painel administrativo + APIs + fluxo de setup
+│   ├── blog/         # frontend público do blog
+│   └── e2e/          # testes end-to-end com Playwright
 ├── packages/
-│   ├── db/            # SQLite schema, migrations, queries
-│   └── mcp-server/    # MCP server implementation
-├── docker-compose.yml # Production stack (admin + blog + redis + nginx)
-├── nginx/             # Reverse proxy config
-└── docs/              # PRD and design docs
+│   ├── db/           # workspace reservado para camada de dados
+│   └── mcp-server/   # servidor MCP para integração com agentes
+├── docs/             # PRD mestre, notas e planos de correção
+├── tasks/            # PRDs modulares por domínio
+├── docker-compose.yml           # stack base
+├── docker-compose.override.yml  # sobreposição local de desenvolvimento
+└── turbo.json
 ```
 
-## Quick start
+## Stack principal
 
-### Prerequisites
+- Node.js 20+
+- npm workspaces + Turbo
+- TypeScript
+- Next.js 14 App Router
+- SQLite com `better-sqlite3` no admin
+- Redis com `ioredis`
+- Validação com `zod`
+- Playwright para E2E
 
-- Docker and Docker Compose
-- Node.js >= 20 (for local development)
+## Aplicações e portas
 
-### Running with Docker
+- `apps/admin`: roda em `http://localhost:3001`
+- `apps/blog`: roda em `http://localhost:3000`
+- `apps/e2e`: suíte Playwright para fluxos integrados
+- `packages/mcp-server`: binário `nexus-mcp` após build
 
-```bash
-git clone <repo-url> nexus-cms
-cd nexus-cms
-cp .env.example .env
-# Edit .env: set JWT_SECRET, JWT_REFRESH_SECRET, REDIS_PASSWORD, ENCRYPTION_KEY
-# Generate secrets with: openssl rand -base64 64
+No admin, a raiz redireciona para `/admin`. Em ambiente novo, o fluxo inicial passa por `/admin/setup`.
 
-docker compose up -d
-```
+## Pré-requisitos
 
-Open `http://localhost` and complete the **First Run wizard** (Owner registration, DB selection, SMTP, blog identity).
+- Node.js `>=20`
+- npm `>=10`
+- Docker e Docker Compose, se você quiser subir a stack containerizada
 
-### Local development
+## Desenvolvimento local
+
+Instale as dependências na raiz:
 
 ```bash
 npm install
-npm run dev          # starts admin (3001) and blog (3000) via Turbo
-npm run typecheck
-npm run lint
-npm test             # unit tests (Vitest)
-npm run test:e2e     # Playwright E2E
 ```
 
-Storybook (admin components):
+Suba o monorepo em modo desenvolvimento:
+
+```bash
+npm run dev
+```
+
+Comandos úteis na raiz:
+
+```bash
+npm run build
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e
+```
+
+Comandos por workspace:
 
 ```bash
 npm run storybook --workspace=apps/admin
+npm run test:coverage --workspace=apps/admin
+npm run test:e2e:ui --workspace=apps/e2e
+npm run install-browsers --workspace=apps/e2e
 ```
 
-## Configuration
+## Ambiente com Docker
 
-All configuration is driven by `.env`. See `.env.example` for the full reference. Key variables:
+Copie o arquivo de exemplo e ajuste os segredos:
 
-| Variable | Purpose |
-|---|---|
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | Token signing keys (64+ chars) |
-| `REDIS_PASSWORD` | Redis auth |
-| `ENCRYPTION_KEY` | AES-256-GCM key for sensitive settings (API keys, etc.) |
-| `DATA_DIR` | SQLite + uploads volume mount |
-| `BLOG_URL` | Public URL of the blog |
-| `SMTP_*` | Email (optional, required for newsletter and notifications) |
+```bash
+cp .env.example .env
+```
 
-## Testing
+Variáveis importantes:
 
-| Suite | Command | Stack |
-|---|---|---|
-| Unit | `npm test` | Vitest |
-| Integration | `npm test --workspace=apps/admin` | Vitest + in-memory SQLite |
-| E2E | `npm run test:e2e` | Playwright + PostgreSQL container + MailHog |
-| A11y | `npm run test:e2e -- --grep a11y` | axe-core via Playwright |
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+- `REDIS_PASSWORD`
+- `ENCRYPTION_KEY`
+- `BLOG_URL`
+- `ADMIN_URL`
 
-## Documentation
+Depois:
 
-- [PRD](docs/PRD.md) — full product requirements
-- [CONTRIBUTING](CONTRIBUTING.md) — setup, branching, PR process
-- [SECURITY](SECURITY.md) — responsible disclosure
-- [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) — Contributor Covenant
-- Storybook — published to GitHub Pages per release
-- Admin panel `/admin/docs` — system documentation, editable per release
-- Admin panel `/admin/c4` — C4 Model architecture diagrams
+```bash
+docker compose up -d --build
+```
 
-## Security
+O Compose da raiz funciona em camadas:
 
-Found a vulnerability? See [SECURITY.md](SECURITY.md) for the responsible disclosure process. Do **not** open a public issue.
+- `docker-compose.yml`: definição base da stack
+- `docker-compose.override.yml`: ajustes de desenvolvimento carregados automaticamente pelo `docker compose`
 
-The application has been audited with OWASP ZAP and manually reviewed for OWASP Top 10. All responses include strict security headers (CSP, HSTS, X-Frame-Options DENY, nosniff). Free-text fields are sanitized server-side with DOMPurify.
+Isso não representa dois ambientes concorrentes; é uma única stack com override local.
 
-## License
+Serviços da definição base:
 
-[MIT](LICENSE) © Nexus CMS Contributors
+- `admin`
+- `blog`
+- `redis`
+- `nginx`
+
+Por padrão, o proxy expõe `80` e `443`, configuráveis via `HTTP_PORT` e `HTTPS_PORT`.
+
+No override de desenvolvimento, também entram bind mounts, portas locais para `3000` e `3001`, e o serviço `mailhog`.
+
+## Testes
+
+- `npm test`: executa os testes configurados via Turbo
+- `npm run test:e2e`: executa a suíte Playwright em `apps/e2e`
+- `npm run test:a11y --workspace=apps/e2e`: executa os testes marcados com `@a11y`
+
+Se for a primeira execução do Playwright no ambiente local, instale os browsers antes:
+
+```bash
+npm run install-browsers --workspace=apps/e2e
+```
+
+## Documentação
+
+- [PRD mestre](docs/PRD.md)
+- [Checklist de tarefas](docs/task-checklist.md)
+- [Plano de correção](docs/correction-plan.md)
+- [PRDs modulares](tasks/)
+- [README do MCP server](packages/mcp-server/README.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Observações
+
+- O workspace `packages/db` existe no monorepo, mas não está documentado aqui como pacote finalizado.
+- Parte do escopo funcional detalhado em `docs/PRD.md` e `tasks/` ainda representa planejamento de produto, não garantia de implementação concluída.
+- Antes de editar arquivos dentro de `apps/admin`, `apps/blog`, `apps/e2e` ou `packages/mcp-server`, leia o `AGENTS.md` mais próximo.
+
+## Licença
+
+[MIT](LICENSE)

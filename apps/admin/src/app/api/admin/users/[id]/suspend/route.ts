@@ -10,7 +10,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const auth = requireRole(request, 'owner', 'admin')
+  const auth = requireRole(request, 'owner')
   if (auth instanceof NextResponse) return auth
 
   const db = getDb()

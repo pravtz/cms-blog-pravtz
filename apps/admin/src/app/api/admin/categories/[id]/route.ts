@@ -10,7 +10,6 @@ interface CategoryRow {
   id: string
   name: string
   slug: string
-  created_at: string
 }
 
 const updateSchema = z.object({
@@ -77,7 +76,7 @@ export async function PUT(
   )
 
   const category = db
-    .prepare('SELECT id, name, slug, created_at FROM categories WHERE id = ?')
+    .prepare('SELECT id, name, slug FROM categories WHERE id = ?')
     .get(id) as CategoryRow
 
   return NextResponse.json({ category })

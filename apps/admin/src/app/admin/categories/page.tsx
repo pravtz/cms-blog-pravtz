@@ -8,7 +8,6 @@ interface Category {
   id: string
   name: string
   slug: string
-  created_at: string
   post_count: number
 }
 
@@ -68,14 +67,24 @@ export default function CategoriesPage() {
         body: JSON.stringify({ name: newName.trim() }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        toast({ variant: 'error', title: err.error ?? 'Failed to create category.' })
+        let errorMessage = 'Failed to create category.'
+        try {
+          const err = await res.json()
+          if (typeof err?.error === 'string') {
+            errorMessage = err.error
+          }
+        } catch {
+          // Keep the fallback message when the server returns a non-JSON error response.
+        }
+        toast({ variant: 'error', title: errorMessage })
         return
       }
       toast({ variant: 'success', title: 'Category created.' })
       setShowCreate(false)
       setNewName('')
-      fetchCategories()
+      await fetchCategories()
+    } catch {
+      toast({ variant: 'error', title: 'Failed to create category.' })
     } finally {
       setCreating(false)
     }

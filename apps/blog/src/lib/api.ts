@@ -1,4 +1,7 @@
-const ADMIN_URL = process.env.ADMIN_URL ?? 'http://localhost:3001'
+const ADMIN_URL =
+  process.env.ADMIN_URL ??
+  process.env.NEXT_PUBLIC_ADMIN_URL ??
+  'http://localhost:3001'
 
 export interface Post {
   id: string

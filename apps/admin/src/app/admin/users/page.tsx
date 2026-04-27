@@ -23,6 +23,16 @@ interface Group {
   is_system: number
 }
 
+interface UserFormState {
+  name: string
+  nickname: string
+  email: string
+  phone: string
+  role: string
+  password: string
+  confirmPassword: string
+}
+
 const STATUS_LABELS: Record<string, string> = {
   pending_email: 'Email Unconfirmed',
   pending_approval: 'Awaiting Approval',
@@ -52,6 +62,16 @@ const STATUS_TABS = [
   { value: 'pending_email', label: 'Unconfirmed' },
 ]
 
+const emptyUserForm: UserFormState = {
+  name: '',
+  nickname: '',
+  email: '',
+  phone: '',
+  role: 'default',
+  password: '',
+  confirmPassword: '',
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
@@ -65,17 +85,45 @@ function UsersContent() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [currentRole, setCurrentRole] = useState<string | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState<UserFormState>(emptyUserForm)
+  const [createGroupIds, setCreateGroupIds] = useState<string[]>([])
+  const [creating, setCreating] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editRole, setEditRole] = useState('')
+  const [editForm, setEditForm] = useState<UserFormState>(emptyUserForm)
   const [editGroupIds, setEditGroupIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [detailUser, setDetailUser] = useState<User | null>(null)
+  const [resetUser, setResetUser] = useState<User | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('')
+  const [resettingPassword, setResettingPassword] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{
     type: 'approve' | 'reject' | 'suspend' | 'reactivate'
     user: User
   } | null>(null)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+  const isOwner = currentRole === 'owner'
+
+  const fetchCurrentUser = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) {
+        router.replace('/admin/login')
+        return
+      }
+      if (!res.ok) return
+      const data = await res.json()
+      setCurrentRole(data.user.role)
+    } catch {
+      // Ignore and let backend enforce permissions.
+    }
+  }, [router, token])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -114,12 +162,78 @@ function UsersContent() {
     }
   }, [token])
 
+  useEffect(() => { fetchCurrentUser() }, [fetchCurrentUser])
   useEffect(() => { fetchUsers() }, [fetchUsers])
   useEffect(() => { fetchGroups() }, [fetchGroups])
 
   function setTab(status: string) {
     const url = status ? `/admin/users?status=${status}` : '/admin/users'
     router.push(url)
+  }
+
+  function updateCreateForm<K extends keyof UserFormState>(field: K, value: UserFormState[K]) {
+    setCreateForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function updateEditForm<K extends keyof UserFormState>(field: K, value: UserFormState[K]) {
+    setEditForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function toggleGroup(groupId: string, selected: string[], setSelected: (value: string[] | ((current: string[]) => string[])) => void, checked: boolean) {
+    if (checked) {
+      setSelected((ids) => [...ids, groupId])
+      return
+    }
+    setSelected((ids) => ids.filter((id) => id !== groupId))
+  }
+
+  function resetCreateState() {
+    setShowCreate(false)
+    setCreateForm(emptyUserForm)
+    setCreateGroupIds([])
+  }
+
+  async function handleCreateUser() {
+    if (!isOwner) return
+    if (!createForm.name.trim() || !createForm.email.trim() || !createForm.password) return
+    if (createForm.password !== createForm.confirmPassword) {
+      toast({ variant: 'error', title: 'Passwords do not match.' })
+      return
+    }
+
+    setCreating(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: createForm.name.trim(),
+          nickname: createForm.nickname.trim(),
+          email: createForm.email.trim(),
+          phone: createForm.phone.trim(),
+          password: createForm.password,
+          role: createForm.role,
+          groupIds: createGroupIds,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        toast({ variant: 'error', title: err?.error ?? 'Failed to create user.' })
+        return
+      }
+
+      toast({ variant: 'success', title: 'User created.' })
+      resetCreateState()
+      await fetchUsers()
+    } catch {
+      toast({ variant: 'error', title: 'Failed to create user.' })
+    } finally {
+      setCreating(false)
+    }
   }
 
   async function doAction(type: 'approve' | 'reject' | 'suspend' | 'reactivate', user: User) {
@@ -129,7 +243,6 @@ function UsersContent() {
       suspend: `/api/admin/users/${user.id}/suspend`,
       reactivate: `/api/admin/users/${user.id}/reactivate`,
     }
-    const methodMap = { approve: 'POST', reject: 'POST', suspend: 'POST', reactivate: 'POST' }
     const successMsg = {
       approve: 'User approved.',
       reject: 'User rejected.',
@@ -139,17 +252,17 @@ function UsersContent() {
 
     try {
       const res = await fetch(endpointMap[type], {
-        method: methodMap[type],
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) {
-        const err = await res.json()
-        toast({ variant: 'error', title: err.error ?? 'Action failed.' })
+        const err = await res.json().catch(() => null)
+        toast({ variant: 'error', title: err?.error ?? 'Action failed.' })
         return
       }
       toast({ variant: 'success', title: successMsg[type] })
       setConfirmAction(null)
-      fetchUsers()
+      await fetchUsers()
     } catch {
       toast({ variant: 'error', title: 'Action failed.' })
     }
@@ -163,45 +276,97 @@ function UsersContent() {
       if (res.ok) {
         const data = await res.json()
         setDetailUser(data.user)
+        return
       }
     } catch {
       // fallback to current data
-      setDetailUser(user)
     }
+    setDetailUser(user)
   }
 
   function openEdit(user: User) {
     setEditUser(user)
-    setEditRole(user.role)
+    setEditForm({
+      name: user.name,
+      nickname: user.nickname ?? '',
+      email: user.email,
+      phone: user.phone ?? '',
+      role: user.role,
+      password: '',
+      confirmPassword: '',
+    })
     setEditGroupIds((user.groups ?? []).filter((g) => !g.is_system).map((g) => g.id))
   }
 
   async function saveEdit() {
-    if (!editUser) return
+    if (!editUser || !isOwner) return
     setSaving(true)
     try {
-      const body: { role?: string; groupIds?: string[] } = {}
-      if (editRole !== editUser.role) body.role = editRole
-      body.groupIds = editGroupIds
-
       const res = await fetch(`/api/admin/users/${editUser.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          nickname: editForm.nickname.trim(),
+          email: editForm.email.trim(),
+          phone: editForm.phone.trim(),
+          role: editForm.role,
+          groupIds: editGroupIds,
+        }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        toast({ variant: 'error', title: err.error ?? 'Failed to update user.' })
+        const err = await res.json().catch(() => null)
+        toast({ variant: 'error', title: err?.error ?? 'Failed to update user.' })
         return
       }
       toast({ variant: 'success', title: 'User updated.' })
       setEditUser(null)
-      fetchUsers()
+      await fetchUsers()
+    } catch {
+      toast({ variant: 'error', title: 'Failed to update user.' })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!resetUser || !isOwner) return
+    if (resetPassword.length < 8) {
+      toast({ variant: 'error', title: 'Password must be at least 8 characters.' })
+      return
+    }
+    if (resetPassword !== resetConfirmPassword) {
+      toast({ variant: 'error', title: 'Passwords do not match.' })
+      return
+    }
+
+    setResettingPassword(true)
+    try {
+      const res = await fetch(`/api/admin/users/${resetUser.id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: resetPassword }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        toast({ variant: 'error', title: err?.error ?? 'Failed to reset password.' })
+        return
+      }
+
+      toast({ variant: 'success', title: 'Password reset.' })
+      setResetUser(null)
+      setResetPassword('')
+      setResetConfirmPassword('')
+    } catch {
+      toast({ variant: 'error', title: 'Failed to reset password.' })
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -212,11 +377,13 @@ function UsersContent() {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.title}>Users</h1>
-          <p className={styles.subtitle}>Manage user accounts, roles, and group memberships.</p>
+          <p className={styles.subtitle}>Manage user accounts, roles, approvals, and passwords.</p>
         </div>
+        {isOwner && (
+          <Button onClick={() => setShowCreate(true)}>+ New User</Button>
+        )}
       </div>
 
-      {/* Status Tabs */}
       <div className={styles.tabs} role="tablist">
         {STATUS_TABS.map((tab) => (
           <button
@@ -277,7 +444,17 @@ function UsersContent() {
                   <td className={styles.date}>{formatDate(user.created_at)}</td>
                   <td>
                     <div className={styles.actions}>
-                      {user.status === 'pending_approval' && (
+                      {isOwner && user.role !== 'owner' && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(user)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setResetUser(user)}>
+                            Reset Password
+                          </Button>
+                        </>
+                      )}
+                      {isOwner && user.status === 'pending_approval' && (
                         <>
                           <Button size="sm" variant="ghost" onClick={() => setConfirmAction({ type: 'approve', user })}>
                             Approve
@@ -287,25 +464,15 @@ function UsersContent() {
                           </Button>
                         </>
                       )}
-                      {user.status === 'active' && user.role !== 'owner' && (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(user)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="danger" onClick={() => setConfirmAction({ type: 'suspend', user })}>
-                            Suspend
-                          </Button>
-                        </>
+                      {isOwner && user.status === 'active' && user.role !== 'owner' && (
+                        <Button size="sm" variant="danger" onClick={() => setConfirmAction({ type: 'suspend', user })}>
+                          Suspend
+                        </Button>
                       )}
-                      {user.status === 'suspended' && (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(user)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmAction({ type: 'reactivate', user })}>
-                            Reactivate
-                          </Button>
-                        </>
+                      {isOwner && user.status === 'suspended' && (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmAction({ type: 'reactivate', user })}>
+                          Reactivate
+                        </Button>
                       )}
                       {user.role === 'owner' && (
                         <span className={styles.ownerNote}>Owner</span>
@@ -324,7 +491,54 @@ function UsersContent() {
         </div>
       )}
 
-      {/* User Detail Modal */}
+      {showCreate && (
+        <Modal
+          open={showCreate}
+          onClose={resetCreateState}
+          title="Create User"
+          footer={
+            <>
+              <Button variant="ghost" onClick={resetCreateState}>Cancel</Button>
+              <Button onClick={handleCreateUser} loading={creating}>Create User</Button>
+            </>
+          }
+        >
+          <div className={styles.editForm}>
+            <Input label="Name" value={createForm.name} onChange={(e) => updateCreateForm('name', e.target.value)} required />
+            <Input label="Nickname" value={createForm.nickname} onChange={(e) => updateCreateForm('nickname', e.target.value)} />
+            <Input label="Email" type="email" value={createForm.email} onChange={(e) => updateCreateForm('email', e.target.value)} required />
+            <Input label="Phone" value={createForm.phone} onChange={(e) => updateCreateForm('phone', e.target.value)} />
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Role</label>
+              <select className={styles.select} value={createForm.role} onChange={(e) => updateCreateForm('role', e.target.value)}>
+                <option value="default">Member</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <Input label="Temporary Password" type="password" value={createForm.password} onChange={(e) => updateCreateForm('password', e.target.value)} required />
+            <Input label="Confirm Password" type="password" value={createForm.confirmPassword} onChange={(e) => updateCreateForm('confirmPassword', e.target.value)} required />
+            {allGroups.length > 0 && (
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Groups</label>
+                <div className={styles.checkboxList}>
+                  {allGroups.map((g) => (
+                    <label key={g.id} className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={createGroupIds.includes(g.id)}
+                        onChange={(e) => toggleGroup(g.id, createGroupIds, setCreateGroupIds, e.target.checked)}
+                      />
+                      <span>{g.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
       {detailUser && (
         <Modal
           open={!!detailUser}
@@ -361,7 +575,6 @@ function UsersContent() {
         </Modal>
       )}
 
-      {/* Edit User Modal */}
       {editUser && (
         <Modal
           open={!!editUser}
@@ -375,12 +588,16 @@ function UsersContent() {
           }
         >
           <div className={styles.editForm}>
+            <Input label="Name" value={editForm.name} onChange={(e) => updateEditForm('name', e.target.value)} required />
+            <Input label="Nickname" value={editForm.nickname} onChange={(e) => updateEditForm('nickname', e.target.value)} />
+            <Input label="Email" type="email" value={editForm.email} onChange={(e) => updateEditForm('email', e.target.value)} required />
+            <Input label="Phone" value={editForm.phone} onChange={(e) => updateEditForm('phone', e.target.value)} />
             <div className={styles.field}>
               <label className={styles.fieldLabel}>Role</label>
               <select
                 className={styles.select}
-                value={editRole}
-                onChange={(e) => setEditRole(e.target.value)}
+                value={editForm.role}
+                onChange={(e) => updateEditForm('role', e.target.value)}
               >
                 <option value="default">Member</option>
                 <option value="editor">Editor</option>
@@ -396,13 +613,7 @@ function UsersContent() {
                       <input
                         type="checkbox"
                         checked={editGroupIds.includes(g.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setEditGroupIds((ids) => [...ids, g.id])
-                          } else {
-                            setEditGroupIds((ids) => ids.filter((id) => id !== g.id))
-                          }
-                        }}
+                        onChange={(e) => toggleGroup(g.id, editGroupIds, setEditGroupIds, e.target.checked)}
                       />
                       <span>{g.name}</span>
                     </label>
@@ -414,7 +625,38 @@ function UsersContent() {
         </Modal>
       )}
 
-      {/* Confirm Action Modal */}
+      {resetUser && (
+        <Modal
+          open={!!resetUser}
+          onClose={() => {
+            setResetUser(null)
+            setResetPassword('')
+            setResetConfirmPassword('')
+          }}
+          title={`Reset Password: ${resetUser.name}`}
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setResetUser(null)
+                  setResetPassword('')
+                  setResetConfirmPassword('')
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleResetPassword} loading={resettingPassword}>Reset Password</Button>
+            </>
+          }
+        >
+          <div className={styles.editForm}>
+            <Input label="New Password" type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} required />
+            <Input label="Confirm New Password" type="password" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} required />
+          </div>
+        </Modal>
+      )}
+
       {confirmAction && (
         <Modal
           open={!!confirmAction}

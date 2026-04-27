@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
-import { getDb, ownerExists, setSetting } from '@/lib/db'
+import { getDb, ownerExists } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
@@ -26,6 +26,71 @@ const SetupSchema = z.object({
   blogDescription: z.string().max(500).optional(),
   blogUrl: z.string().url(),
 })
+
+const LOCAL_SEED_POSTS = Array.from({ length: 10 }, (_, index) => {
+  const postNumber = String(index + 1).padStart(2, '0')
+
+  return {
+    title: `Post de exemplo ${postNumber}`,
+    slug: `post-de-exemplo-${postNumber}`,
+    excerpt: `Resumo do post de exemplo ${postNumber} para o ambiente local.`,
+    content: `# Post de exemplo ${postNumber}
+
+Este artigo foi criado automaticamente durante o setup local para facilitar testes manuais e smoke checks.
+
+- Ambiente: local
+- Ordem: ${postNumber}
+- Objetivo: validar feed, detalhe e APIs públicas
+`,
+  }
+})
+
+function shouldSeedLocalPosts(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+}
+
+function seedLocalPosts(db: ReturnType<typeof getDb>, ownerId: string): void {
+  if (!shouldSeedLocalPosts()) {
+    return
+  }
+
+  const existingPosts = db
+    .prepare('SELECT COUNT(*) AS total FROM posts')
+    .get() as { total: number }
+
+  if (existingPosts.total > 0) {
+    return
+  }
+
+  const insertPost = db.prepare(`
+    INSERT INTO posts (
+      id, title, slug, excerpt, content, status, visibility,
+      language, author_id, reading_time, publish_date, created_at, updated_at
+    ) VALUES (
+      ?, ?, ?, ?, ?, 'published', 'public', 'pt-BR', ?, ?, ?, ?, ?
+    )
+  `)
+
+  const baseTimestamp = Date.now()
+
+  for (let index = 0; index < LOCAL_SEED_POSTS.length; index += 1) {
+    const post = LOCAL_SEED_POSTS[index]
+    const publishDate = new Date(baseTimestamp - index * 24 * 60 * 60 * 1000).toISOString()
+
+    insertPost.run(
+      randomUUID(),
+      post.title,
+      post.slug,
+      post.excerpt,
+      post.content,
+      ownerId,
+      3,
+      publishDate,
+      publishDate,
+      publishDate
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,6 +153,8 @@ export async function POST(request: NextRequest) {
            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
         ).run(key, value)
       }
+
+      seedLocalPosts(db, userId)
     })()
 
     logAudit({

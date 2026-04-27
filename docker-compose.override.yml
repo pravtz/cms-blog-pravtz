@@ -1,25 +1,31 @@
 # Development overrides — used automatically by `docker compose up`
-version: '3.9'
-
 services:
   admin:
     build:
       target: development
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nexuscms.local
+      SMTP_USER: ""
+      SMTP_PASS: ""
     volumes:
       - ./apps/admin:/app/apps/admin
       - admin_next:/app/apps/admin/.next
       - nexus_data:/data
     ports:
       - "3001:3001"
+    depends_on:
+      - redis
+      - mailhog
     command: npm run dev --workspace=@nexus/admin
 
   blog:
     build:
       target: development
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
     volumes:
       - ./apps/blog:/app/apps/blog
       - blog_next:/app/apps/blog/.next
@@ -30,6 +36,12 @@ services:
   redis:
     ports:
       - "6380:6379"
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   admin_next:

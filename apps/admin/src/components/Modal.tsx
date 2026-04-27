@@ -31,7 +31,13 @@ export function Modal({
   labelId,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
   const titleId = labelId ?? 'modal-title'
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   // Focus trap: move focus into panel when opened
   useEffect(() => {
@@ -40,21 +46,34 @@ export function Modal({
     if (!panel) return
 
     // Store previously focused element to restore on close
-    const prev = document.activeElement as HTMLElement | null
+    previousFocusRef.current = document.activeElement as HTMLElement | null
 
     // Focus first focusable element
-    const focusable = panel.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    )
-    ;(focusable[0] ?? panel).focus()
+    const getFocusableElements = () =>
+      Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true')
+
+    const focusable = getFocusableElements()
+    const preferredFocusTarget =
+      panel.querySelector<HTMLElement>('[autofocus]') ??
+      focusable.find((element) =>
+        element.matches('input:not([type="hidden"]), textarea, select, [contenteditable="true"]'),
+      ) ??
+      focusable[0] ??
+      panel
+
+    preferredFocusTarget.focus()
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key === 'Tab') {
-        const list = Array.from(focusable)
+        const list = getFocusableElements()
         if (list.length === 0) return
         const first = list[0]
         const last = list[list.length - 1]
@@ -75,9 +94,10 @@ export function Modal({
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      prev?.focus()
+      previousFocusRef.current?.focus()
+      previousFocusRef.current = null
     }
-  }, [open, onClose])
+  }, [open])
 
   // Lock body scroll while open
   useEffect(() => {

@@ -7,6 +7,47 @@
   gap: var(--space-10);
 }
 
+.emptyHero {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  padding: var(--space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top left, rgba(124, 106, 247, 0.18), transparent 32%),
+    linear-gradient(180deg, #171717 0%, #101010 100%);
+}
+
+.emptyCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  min-height: 100%;
+  max-width: 56rem;
+}
+
+.emptyEyebrow {
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.emptyTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-hero);
+  color: #ffffff;
+}
+
+.emptyDescription {
+  max-width: 48rem;
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+}
+
 /* Below hero: PostGrid (main) + BioCard (sidebar) */
 .body {
   display: grid;
@@ -24,6 +65,65 @@
   font-size: var(--text-2xl);
   color: var(--text-primary);
   margin-bottom: var(--space-6);
+}
+
+.emptyPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #141414 0%, #101010 100%);
+}
+
+.emptyPanelTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+}
+
+.emptyPanelText {
+  max-width: 56ch;
+  color: var(--text-secondary);
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.emptyActionPrimary,
+.emptyActionSecondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.emptyActionPrimary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.emptyActionPrimary:hover {
+  background: var(--accent-hover);
+  color: #ffffff;
+}
+
+.emptyActionSecondary {
+  color: var(--text-primary);
+  border: 1px solid var(--border-hover);
+  background: transparent;
+}
+
+.emptyActionSecondary:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
 }
 
 .sidebar {
@@ -52,5 +152,10 @@
   .main {
     padding: var(--space-5) var(--space-4);
     gap: var(--space-6);
+  }
+
+  .emptyHero,
+  .emptyPanel {
+    padding: var(--space-5);
   }
 }
