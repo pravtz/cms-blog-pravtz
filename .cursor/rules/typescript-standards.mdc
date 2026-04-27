@@ -1,0 +1,44 @@
+---
+description: TypeScript coding standards for Nexus CMS
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+- All code must be typed. Avoid `any`; if absolutely needed, leave a short `// reason:` comment.
+- Validate all external input (HTTP body, query, env) with `zod` schemas before use.
+- Prefer `unknown` + a type guard over `any`.
+- Use `import type { ... }` for type-only imports.
+- ESM module syntax (`import`/`export`) — no `require`.
+- Path alias `@/` resolves to `apps/admin/src/` (or the equivalent in each app).
+
+## Examples
+
+```typescript
+// BAD
+const handler = async (req: any) => { ... }
+try { await x() } catch (e) {}
+
+// GOOD
+import { z } from 'zod'
+const Body = z.object({ title: z.string().max(500) })
+
+const parsed = Body.safeParse(await req.json())
+if (!parsed.success) {
+  return NextResponse.json(
+    { error: 'Invalid input', details: parsed.error.flatten() },
+    { status: 400 }
+  )
+}
+
+try {
+  await fetchData()
+} catch (e) {
+  logger.error('Failed to fetch', { error: e })
+  throw new DataFetchError('Unable to retrieve data', { cause: e })
+}
+```
+
+- Do not suppress ESLint rules without a justification comment.
+- Run `npm run typecheck` before pushing — `tsc --noEmit` must be clean.

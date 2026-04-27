@@ -1,0 +1,46 @@
+---
+description: Nexus CMS — high-level project conventions and architecture
+alwaysApply: true
+---
+
+# Nexus CMS — Project Conventions
+
+Monorepo (npm workspaces + Turbo) for a self-hosted CMS.
+
+## Layout
+
+- `apps/admin/` — Next.js 14 admin panel + REST API + MCP (port 3001, package `@nexus/admin`)
+- `apps/blog/` — Next.js 14 public SSG blog (port 3000, package `@nexus/blog`)
+- `apps/e2e/` — Playwright E2E suite (`@nexus/e2e`)
+- `packages/db/`, `packages/mcp-server/` — shared packages
+- `docker-compose.yml` — production stack (admin + blog + redis + nginx)
+
+## Stack
+
+- Node.js >= 20, npm 10+
+- TypeScript (strict; avoid `any`)
+- Next.js 14 App Router, React 18
+- SQLite via `better-sqlite3` (admin); Redis via `ioredis`
+- Validation: `zod`. UUIDs: `uuid` v4.
+- Auth: JWT (`jsonwebtoken`) + bcrypt (cost 12)
+- Sanitization: `sanitize-html` / DOMPurify
+- Encryption (sensitive settings): AES-256-GCM via `lib/encryption.ts`
+
+## Run scripts (root)
+
+```bash
+npm run dev         # turbo run dev
+npm run build       # turbo run build
+npm run lint        # turbo run lint (next lint)
+npm run typecheck   # turbo run typecheck (tsc --noEmit)
+npm test            # turbo run test (Vitest)
+npm run test:e2e    # Playwright via apps/e2e
+```
+
+## Non-negotiables
+
+- Never commit secrets. All config via `.env` (see `.env.example`).
+- Any new behavior needs tests (see testing rule).
+- API responses must never leak sensitive values (tokens, raw API keys); use `maskApiKey()`.
+- WCAG 2.1 AA is required for all UI changes.
+- Use design tokens (CSS custom properties), never hard-coded colors/sizes.

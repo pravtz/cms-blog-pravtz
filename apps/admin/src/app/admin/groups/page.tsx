@@ -17,6 +17,7 @@ interface Group {
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -28,14 +29,16 @@ export default function GroupsPage() {
 
   const fetchGroups = useCallback(async () => {
     setLoading(true)
+    setFetchError(null)
     try {
       const res = await fetch('/api/groups', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error('Failed to load groups')
       const data = await res.json()
-      setGroups(data.groups)
+      setGroups(Array.isArray(data.groups) ? data.groups : [])
     } catch {
+      setFetchError('Failed to load groups. Please try again.')
       toast({ variant: 'error', title: 'Failed to load groups.' })
     } finally {
       setLoading(false)
@@ -102,6 +105,8 @@ export default function GroupsPage() {
 
       {loading ? (
         <div className={styles.loading}>Loading groups…</div>
+      ) : fetchError ? (
+        <div className={styles.empty} role="alert">{fetchError}</div>
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table} aria-label="Groups list">

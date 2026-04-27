@@ -1,0 +1,47 @@
+---
+description: React component conventions (admin + blog)
+globs: apps/**/src/components/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# React Components
+
+## File organization
+
+- Each component lives in its own folder or alongside a co-located CSS Module:
+  - Simple: `components/Button.tsx` + `components/Button.module.css`
+  - Complex: `components/Editor/MDXEditor.tsx` + `components/Editor/MDXEditor.module.css` + `components/Editor/index.ts`
+- Storybook stories live next to the component: `Component.stories.tsx`.
+- Re-export public components from `apps/admin/src/components/index.ts` (barrel).
+
+## Styling
+
+- Use **CSS Modules only** (`.module.css`); no inline styles for layout/colors, no Tailwind, no global classes.
+- Use design tokens (CSS custom properties) — never hard-code colors, sizes, spacing, or radii:
+  - Colors: `var(--accent)`, `var(--bg-primary)`, `var(--text-primary)`, `var(--border-strong)`, `var(--error)`, …
+  - Spacing: `var(--space-1..6)`. Radii: `var(--radius-sm|md)`. Type: `var(--text-sm|base)`, `var(--font-medium)`.
+  - Motion: `var(--transition-fast)`, and always include a `@media (prefers-reduced-motion: reduce)` fallback for animations.
+
+## Component API
+
+- Functional components only. Props extend the underlying HTML element props when the component wraps one:
+
+```tsx
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  size?: 'sm' | 'md' | 'lg'
+  loading?: boolean
+}
+```
+
+- Compose class names with a `[styles.x, condition && styles.y, className].filter(Boolean).join(' ')` pattern.
+- Forward unknown props with a typed spread; never silently drop `className` or `aria-*`.
+
+## Accessibility (WCAG 2.1 AA — required)
+
+- Every interactive element needs a visible `:focus-visible` style.
+- Modals: implement focus trap, close on Escape, `role="dialog"` + `aria-labelledby`.
+- Use `aria-expanded`, `aria-current`, `aria-live` where appropriate; loading spinners are decorative (`aria-hidden="true"`).
+- Disabled/loading buttons: set both `disabled` and `aria-disabled`.
+- Use the `.sr-only` utility class for screen-reader-only text.
+- Icon-only buttons must have `aria-label`.

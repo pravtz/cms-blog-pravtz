@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './page.module.css'
 import { AIImageGenerator, type SavedImage } from '@/components/AIImageGenerator'
 import { useToast } from '@/components'
@@ -25,6 +25,12 @@ export default function ImagesPage() {
   const [loading, setLoading] = useState(true)
   const [aiOnly, setAiOnly] = useState(false)
   const [generatorOpen, setGeneratorOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const { toast } = useToast()
 
@@ -67,10 +73,68 @@ export default function ImagesPage() {
     setPage(1)
   }
 
-  const handleImageSaved = (image: SavedImage) => {
+  const handleImageSaved = (_image: SavedImage) => {
     toast({ variant: 'success', title: 'Image saved to library' })
     fetchImages(1, aiOnly)
     setPage(1)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setUploadError(null)
+    setUploadFile(file)
+
+    if (uploadPreview) {
+      URL.revokeObjectURL(uploadPreview)
+    }
+    setUploadPreview(file ? URL.createObjectURL(file) : null)
+  }
+
+  const handleUpload = async () => {
+    if (!uploadFile) return
+
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+
+      const res = await fetch('/api/images/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        setUploadError(data.error ?? 'Upload failed.')
+        return
+      }
+
+      toast({ variant: 'success', title: 'Image uploaded successfully' })
+      setUploadOpen(false)
+      setUploadFile(null)
+      if (uploadPreview) URL.revokeObjectURL(uploadPreview)
+      setUploadPreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      fetchImages(1, aiOnly)
+      setPage(1)
+    } catch {
+      setUploadError('Network error. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleUploadCancel = () => {
+    setUploadOpen(false)
+    setUploadFile(null)
+    setUploadError(null)
+    if (uploadPreview) URL.revokeObjectURL(uploadPreview)
+    setUploadPreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleCopyUrl = async (image: ImageItem) => {
@@ -121,6 +185,14 @@ export default function ImagesPage() {
           </div>
           <button
             type="button"
+            className={styles.uploadBtn}
+            onClick={() => setUploadOpen((v) => !v)}
+            aria-expanded={uploadOpen}
+          >
+            ↑ Upload File
+          </button>
+          <button
+            type="button"
             className={styles.generateBtn}
             onClick={() => setGeneratorOpen(true)}
           >
@@ -128,6 +200,62 @@ export default function ImagesPage() {
           </button>
         </div>
       </div>
+
+      {uploadOpen && (
+        <div className={styles.uploadPanel} role="region" aria-label="Upload image">
+          <div className={styles.uploadDropzone}>
+            {uploadPreview ? (
+              <div className={styles.uploadPreviewWrap}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={uploadPreview}
+                  alt="Preview"
+                  className={styles.uploadPreviewImg}
+                />
+                <span className={styles.uploadFileName}>{uploadFile?.name}</span>
+              </div>
+            ) : (
+              <label htmlFor="image-upload-input" className={styles.uploadLabel}>
+                <span className={styles.uploadIcon} aria-hidden="true">🖼</span>
+                <span>Click to select an image</span>
+                <span className={styles.uploadHint}>JPG, PNG, GIF, WebP, SVG · max 10 MB</span>
+              </label>
+            )}
+            <input
+              ref={fileInputRef}
+              id="image-upload-input"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+              onChange={handleFileChange}
+              className={styles.uploadInput}
+              aria-label="Choose image file"
+            />
+          </div>
+
+          {uploadError && (
+            <p className={styles.uploadError} role="alert">{uploadError}</p>
+          )}
+
+          <div className={styles.uploadActions}>
+            <button
+              type="button"
+              className={styles.uploadSubmitBtn}
+              onClick={handleUpload}
+              disabled={!uploadFile || uploading}
+            >
+              {uploading ? 'Uploading…' : 'Upload'}
+            </button>
+            <button
+              type="button"
+              className={styles.uploadCancelBtn}
+              onClick={handleUploadCancel}
+              disabled={uploading}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={styles.grid}>
         {loading ? (
@@ -138,7 +266,7 @@ export default function ImagesPage() {
             <p className={styles.emptyText}>
               {aiOnly
                 ? 'No AI-generated images yet. Click "Generate with AI" to create some!'
-                : 'No images yet. Use the AI Image Generator to get started!'}
+                : 'No images yet. Upload a file or use the AI Image Generator to get started!'}
             </p>
             <button
               type="button"

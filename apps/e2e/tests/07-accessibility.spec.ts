@@ -66,6 +66,8 @@ async function assertNoA11yViolations(page: import('@playwright/test').Page, con
 // ── Setup ────────────────────────────────────────────────────────────────────
 
 let ownerToken: string
+/** Slug returned by API for the seeded a11y post (used in /blog/[slug] tests). */
+let blogA11yPostSlug: string
 
 test.describe('WCAG 2.1 AA Accessibility @a11y', () => {
   test.beforeAll(async ({ request }) => {
@@ -73,13 +75,13 @@ test.describe('WCAG 2.1 AA Accessibility @a11y', () => {
     await setupOwnerViaApi(request)
     ownerToken = await loginViaApi(request, TEST_OWNER.email, TEST_OWNER.password)
 
-    // Create a test post for blog page tests
-    await createPostViaApi(request, ownerToken, {
+    const post = await createPostViaApi(request, ownerToken, {
       title: 'A11y Test Post',
       content: '## Introduction\n\nThis is a test post for accessibility testing.\n\nContent goes here.',
       visibility: 'public',
       status: 'published',
     })
+    blogA11yPostSlug = post.slug
   })
 
   // ── Admin Auth Pages ────────────────────────────────────────────────────────
@@ -241,8 +243,7 @@ test.describe('WCAG 2.1 AA Accessibility @a11y', () => {
       await page.keyboard.press('Control+k')
       await page.waitForTimeout(300)
 
-      // Palette should have role="dialog"
-      const palette = page.locator('[role="dialog"][aria-label*="palette" i], [aria-label*="command" i]')
+      const palette = page.getByRole('dialog', { name: 'Command palette' })
       await expect(palette).toBeVisible()
 
       // Search input should have aria-label
@@ -321,7 +322,7 @@ test.describe('WCAG 2.1 AA Accessibility @a11y', () => {
     })
 
     test('blog post page (/blog/[slug]) has no critical a11y violations @a11y', async ({ page }) => {
-      await page.goto(`${BLOG_URL}/blog/a11y-test-post`)
+      await page.goto(`${BLOG_URL}/blog/${blogA11yPostSlug}`)
       await page.waitForLoadState('networkidle')
 
       // If 404, skip gracefully
@@ -338,7 +339,7 @@ test.describe('WCAG 2.1 AA Accessibility @a11y', () => {
     })
 
     test('blog post page has correct article structure @a11y', async ({ page }) => {
-      await page.goto(`${BLOG_URL}/blog/a11y-test-post`)
+      await page.goto(`${BLOG_URL}/blog/${blogA11yPostSlug}`)
       await page.waitForLoadState('networkidle')
 
       const notFound = await page.evaluate(() =>

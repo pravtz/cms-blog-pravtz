@@ -44,10 +44,10 @@ test.describe('Post Visibility — allPrivate', () => {
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
     await page.waitForLoadState('networkidle')
 
-    // Should show the RBACBanner (lock icon, login/register CTAs)
-    await expect(
-      page.getByText(/members.only|login|register|restricted/i)
-    ).toBeVisible({ timeout: 10_000 })
+    // RBAC banner heading (title "Members Only Article" also matches broad regex)
+    await expect(page.getByRole('heading', { name: /members-only content/i })).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Should NOT show the full article content
     await expect(
@@ -79,7 +79,7 @@ test.describe('Post Visibility — allPrivate', () => {
     const res = await request.get(`${ADMIN_URL}/api/v1/posts`)
     expect(res.ok()).toBeTruthy()
     const data = await res.json()
-    const privatePosts = (data.posts as Array<{ visibility: string }>).filter(
+    const privatePosts = (data.data as Array<{ visibility: string }>).filter(
       (p) => p.visibility !== 'public'
     )
     expect(privatePosts).toHaveLength(0)

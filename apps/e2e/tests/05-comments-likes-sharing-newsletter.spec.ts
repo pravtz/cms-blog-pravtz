@@ -1,14 +1,23 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import {
   resetDatabase,
   setupOwnerViaApi,
   loginViaApi,
-  loginViaUI,
+  openBlogWithAuth,
   createPostViaApi,
   getNewsletterToken,
   TEST_OWNER,
 } from '../fixtures/helpers'
-import { ADMIN_URL, BLOG_URL } from '../playwright.config'
+import { BLOG_URL } from '../playwright.config'
+
+/** Tokens from logged-in tests persist in the same browser context; clear before anonymous flows. */
+async function resetBlogAnonymousSession(page: Page) {
+  await page.goto(BLOG_URL, { waitUntil: 'load' })
+  await page.evaluate(() => {
+    window.localStorage.removeItem('accessToken')
+    window.localStorage.removeItem('currentUser')
+  })
+}
 
 /**
  * US-27: E2E tests — comments, likes, sharing, and newsletter flows.
@@ -16,6 +25,9 @@ import { ADMIN_URL, BLOG_URL } from '../playwright.config'
 test.describe('Comments, Likes, Sharing, and Newsletter', () => {
   let ownerToken: string
   let postSlug: string
+
+  /** Main post article (excludes related-post cards that also include share controls). */
+  const mainPostArticle = (page: Page) => page.locator('main article').first()
 
   test.beforeAll(async ({ request }) => {
     await resetDatabase(request)
@@ -35,24 +47,18 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
 
   test('anonymous visitor sees login prompt in comment section', async ({ page }) => {
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
-    // The comment section login banner should be visible
-    await expect(
-      page.getByText(/log in|login|create an account/i)
-    ).toBeVisible({ timeout: 10_000 })
+    // Two separate links match the regex; assert at least one prompt link
+    await expect(page.getByRole('link', { name: /log in/i })).toBeVisible({ timeout: 10_000 })
 
     // No comment form should be shown to anonymous users
     await expect(page.locator('textarea[id="comment-content"]')).not.toBeVisible()
   })
 
-  test('logged-in user can post a comment and it appears', async ({ page }) => {
-    // Login via admin UI to set the refreshToken cookie on localhost:3901
-    await loginViaUI(page, TEST_OWNER.email, TEST_OWNER.password)
-
-    // Navigate to the blog post
-    await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+  test('logged-in user can post a comment and it appears', async ({ page, request }) => {
+    await openBlogWithAuth(page, request, TEST_OWNER.email, TEST_OWNER.password, `${BLOG_URL}/blog/${postSlug}`)
+    await page.waitForLoadState('load')
 
     // Wait for comment form to appear (session detected)
     const textarea = page.locator('textarea[id="comment-content"]')
@@ -70,12 +76,9 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
     ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('logged-in user can upvote a comment and count increments', async ({ page }) => {
-    // Login and navigate (session already established by previous test in same context,
-    // but each test gets a new page — so we login again)
-    await loginViaUI(page, TEST_OWNER.email, TEST_OWNER.password)
-    await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+  test('logged-in user can upvote a comment and count increments', async ({ page, request }) => {
+    await openBlogWithAuth(page, request, TEST_OWNER.email, TEST_OWNER.password, `${BLOG_URL}/blog/${postSlug}`)
+    await page.waitForLoadState('load')
 
     // Wait for comments to load and the upvote button to appear
     const upvoteBtn = page.locator('[aria-label*="Upvote"]').first()
@@ -101,19 +104,21 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
 
   test('newsletter subscribe form shows "Verifique seu e-mail!" after submission', async ({ page }) => {
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
     const emailInput = page.locator('#newsletter-email')
     await expect(emailInput).toBeVisible({ timeout: 10_000 })
 
     await emailInput.fill('newsletter-test@e2e.test')
 
-    // Check the privacy checkbox
-    const checkbox = page.locator('.privacyLabel input[type="checkbox"], label input[type="checkbox"]').first()
-    await checkbox.check()
+    await page.locator('#newsletter-privacy').check()
 
-    // Submit
-    await page.getByRole('button', { name: /inscrever-se|subscribe/i }).click()
+    // Submit (scope to this card — avoids strict mode if other checkboxes exist on the page)
+    await page
+      .getByRole('heading', { name: /Receba novos artigos/i })
+      .locator('..')
+      .getByRole('button', { name: /inscrever-se|subscribe/i })
+      .click()
 
     // Success message should appear
     await expect(
@@ -127,7 +132,7 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
 
     // Navigate to the confirmation URL on the blog
     await page.goto(`${BLOG_URL}/newsletter/confirm?token=${encodeURIComponent(token)}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
     // Should show subscription confirmed message
     await expect(
@@ -137,13 +142,11 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
 
   // ── Post Likes ──────────────────────────────────────────────────────────────
 
-  test('logged-in user can like a post and the heart fills', async ({ page }) => {
-    await loginViaUI(page, TEST_OWNER.email, TEST_OWNER.password)
-    await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+  test('logged-in user can like a post and the heart fills', async ({ page, request }) => {
+    await openBlogWithAuth(page, request, TEST_OWNER.email, TEST_OWNER.password, `${BLOG_URL}/blog/${postSlug}`)
+    await page.waitForLoadState('load')
 
-    // Find the like button (aria-label contains "Like")
-    const likeBtn = page.locator('[aria-label*="Like"]').first()
+    const likeBtn = mainPostArticle(page).getByRole('button', { name: /like|curtir/i })
     await expect(likeBtn).toBeVisible({ timeout: 15_000 })
 
     // Initially not liked
@@ -157,40 +160,38 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
   })
 
   test('anonymous user sees "Login to like" tooltip on like button click', async ({ page }) => {
+    await resetBlogAnonymousSession(page)
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
-    // Find the like button
-    const likeBtn = page.locator('[aria-label*="Like"]').first()
+    const likeBtn = mainPostArticle(page).getByRole('button', { name: /like|curtir/i })
     await expect(likeBtn).toBeVisible({ timeout: 10_000 })
 
     // Click as anonymous user — should show tooltip
     await likeBtn.click()
 
     await expect(
-      page.getByRole('tooltip').filter({ hasText: /login to like/i })
+      page.locator('[role="tooltip"]').filter({ hasText: /login to like/i })
     ).toBeVisible({ timeout: 5_000 })
   })
 
   // ── Share Dropdown ──────────────────────────────────────────────────────────
 
   test('share dropdown opens on button click', async ({ page }) => {
+    await resetBlogAnonymousSession(page)
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
-    // Find the share button
-    const shareBtn = page.locator('[aria-label*="ompartilhar"], [aria-label*="hare"]').first()
+    const shareBtn = mainPostArticle(page).getByRole('button', { name: /compartilhar|share/i })
     await expect(shareBtn).toBeVisible({ timeout: 10_000 })
+    await shareBtn.click({ force: true })
+    await expect(shareBtn).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
 
-    // Click to open dropdown
-    await shareBtn.click()
-
-    // Dropdown menu should appear
-    await expect(page.getByRole('menu')).toBeVisible({ timeout: 5_000 })
+    await expect(mainPostArticle(page).locator('[role="menu"]')).toBeVisible({ timeout: 5_000 })
 
     // Should have copy link option
     await expect(
-      page.getByRole('menuitem', { name: /copiar link|copy link/i })
+      mainPostArticle(page).getByRole('menuitem', { name: /copiar link|copy link/i })
     ).toBeVisible()
   })
 
@@ -198,16 +199,18 @@ test.describe('Comments, Likes, Sharing, and Newsletter', () => {
     // Grant clipboard permissions
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
 
+    await resetBlogAnonymousSession(page)
     await page.goto(`${BLOG_URL}/blog/${postSlug}`)
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('load')
 
-    // Open share dropdown
-    const shareBtn = page.locator('[aria-label*="ompartilhar"], [aria-label*="hare"]').first()
+    const shareBtn = mainPostArticle(page).getByRole('button', { name: /compartilhar|share/i })
     await expect(shareBtn).toBeVisible({ timeout: 10_000 })
-    await shareBtn.click()
+    await shareBtn.click({ force: true })
+    await expect(shareBtn).toHaveAttribute('aria-expanded', 'true', { timeout: 5_000 })
+    await expect(mainPostArticle(page).locator('[role="menu"]')).toBeVisible({ timeout: 5_000 })
 
     // Click copy link
-    await page.getByRole('menuitem', { name: /copiar link|copy link/i }).click()
+    await mainPostArticle(page).getByRole('menuitem', { name: /copiar link|copy link/i }).click()
 
     // Tooltip should appear with confirmation message
     await expect(

@@ -1,0 +1,55 @@
+---
+description: Branching, commits, and PR conventions
+alwaysApply: true
+---
+
+# Git Workflow
+
+## Branching
+
+Branch from `main`. Direct pushes to `main` are forbidden.
+
+| Prefix | Use for | Example |
+|---|---|---|
+| `feat/` | new features | `feat/comment-moderation` |
+| `fix/` | bug fixes | `fix/login-redirect-loop` |
+| `chore/` | maintenance | `chore/update-deps` |
+| `docs/` | docs only | `docs/api-reference` |
+
+Keep branches focused and rebased onto latest `main` before requesting review.
+
+## Conventional commits
+
+```
+<type>: <short summary, <=72 chars>
+
+[optional body]
+
+[optional footer, e.g. Closes #42]
+```
+
+Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf`, `ci`.
+
+Examples:
+
+```
+feat: [US-46] - open-source community files
+fix: correct token expiry calculation in auth refresh
+docs: update API route documentation
+```
+
+## Pull requests
+
+- Open a **draft PR early** to share approach.
+- Fill out the PR template: summary, related issues, test plan, screenshots for UI changes.
+- All CI jobs must pass: `lint`, `typecheck`, `test-unit`, `test-integ`, `test-e2e`, `test-a11y`, `build`, `ci-success`.
+- Squash-merge is preferred. Delete the branch after merge.
+
+## PR checklist (must be true before "ready for review")
+
+- Tests added/updated for changed behavior.
+- TypeScript types are correct (no unjustified `any`).
+- No new ESLint errors or warnings.
+- Migrations use `IF NOT EXISTS` (see database rule).
+- New API routes have rate limit, security headers, auth/RBAC where applicable.
+- WCAG 2.1 AA preserved on UI changes.

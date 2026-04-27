@@ -30,7 +30,7 @@ export default defineConfig({
 
   webServer: [
     {
-      command: `E2E_TESTING=true DATA_DIR=/tmp/nexus-e2e JWT_SECRET=e2e-test-jwt-secret-at-least-32chars JWT_REFRESH_SECRET=e2e-test-refresh-secret-32chars npx next dev -p ${ADMIN_PORT}`,
+      command: `E2E_TESTING=true DATA_DIR=/tmp/nexus-e2e JWT_SECRET=e2e-test-jwt-secret-at-least-32chars JWT_REFRESH_SECRET=e2e-test-refresh-secret-32chars NEXT_DIST_DIR=.next-e2e npx next dev -p ${ADMIN_PORT}`,
       cwd: '../admin',
       url: `${ADMIN_URL}/api/setup/status`,
       reuseExistingServer: !process.env.CI,
@@ -44,7 +44,7 @@ export default defineConfig({
       },
     },
     {
-      command: `ADMIN_URL=${ADMIN_URL} NEXT_PUBLIC_ADMIN_URL=${ADMIN_URL} NEXT_PUBLIC_BLOG_URL=${BLOG_URL} npx next dev -p ${BLOG_PORT}`,
+      command: `ADMIN_URL=${ADMIN_URL} NEXT_PUBLIC_ADMIN_URL=${ADMIN_URL} NEXT_PUBLIC_BLOG_URL=${BLOG_URL} NEXT_DIST_DIR=.next-e2e npx next dev -p ${BLOG_PORT}`,
       cwd: '../blog',
       url: BLOG_URL,
       reuseExistingServer: !process.env.CI,

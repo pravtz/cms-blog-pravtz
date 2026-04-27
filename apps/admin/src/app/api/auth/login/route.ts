@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const BRUTE_FORCE_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 const BRUTE_FORCE_MAX_ATTEMPTS = 5
-const BRUTE_FORCE_BLOCK_MS = 30 * 60 * 1000 // 30 minutes
+const RETRY_AFTER_SECONDS = 900 // 15 minutes in seconds
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -27,6 +27,34 @@ interface UserRow {
   first_login_done: number
 }
 
+// In-memory store for login failure rate limiting (fallback, no Redis/DB dependency)
+const loginFailures = new Map<string, { count: number; resetAt: number }>()
+
+function isLoginBlocked(ip: string): { blocked: boolean; retryAfter: number } {
+  const now = Date.now()
+  const entry = loginFailures.get(ip)
+  if (!entry || entry.resetAt < now) {
+    return { blocked: false, retryAfter: 0 }
+  }
+  if (entry.count >= BRUTE_FORCE_MAX_ATTEMPTS) {
+    return {
+      blocked: true,
+      retryAfter: Math.ceil((entry.resetAt - now) / 1000),
+    }
+  }
+  return { blocked: false, retryAfter: 0 }
+}
+
+function recordLoginFailure(ip: string): void {
+  const now = Date.now()
+  const entry = loginFailures.get(ip)
+  if (!entry || entry.resetAt < now) {
+    loginFailures.set(ip, { count: 1, resetAt: now + BRUTE_FORCE_WINDOW_MS })
+  } else {
+    entry.count++
+  }
+}
+
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -35,52 +63,27 @@ function getClientIP(request: NextRequest): string {
   )
 }
 
-function isIPBlocked(db: ReturnType<typeof getDb>, ip: string): boolean {
-  const blockWindowStart = new Date(Date.now() - BRUTE_FORCE_BLOCK_MS).toISOString()
-  const windowStart = new Date(Date.now() - BRUTE_FORCE_WINDOW_MS).toISOString()
-
-  const recentFailures = db
-    .prepare(
-      `SELECT COUNT(*) as count FROM login_attempts
-       WHERE ip_address = ? AND success = 0 AND attempted_at > ?`
-    )
-    .get(ip, windowStart) as { count: number }
-
-  // If 5+ failures in last 15 min, check if the block period hasn't expired
-  if (recentFailures.count >= BRUTE_FORCE_MAX_ATTEMPTS) {
-    const oldestFailure = db
-      .prepare(
-        `SELECT attempted_at FROM login_attempts
-         WHERE ip_address = ? AND success = 0
-         ORDER BY attempted_at DESC
-         LIMIT 1 OFFSET ${BRUTE_FORCE_MAX_ATTEMPTS - 1}`
-      )
-      .get(ip) as { attempted_at: string } | undefined
-
-    if (oldestFailure && oldestFailure.attempted_at > blockWindowStart) {
-      return true
-    }
-  }
-
-  return false
-}
-
 function recordAttempt(
   db: ReturnType<typeof getDb>,
   ip: string,
   email: string | null,
   success: boolean
 ) {
-  db.prepare(
-    'INSERT INTO login_attempts (ip_address, email, success) VALUES (?, ?, ?)'
-  ).run(ip, email, success ? 1 : 0)
+  try {
+    db.prepare(
+      'INSERT INTO login_attempts (ip_address, email, success) VALUES (?, ?, ?)'
+    ).run(ip, email, success ? 1 : 0)
+  } catch {
+    // Non-blocking: audit log failure must not interrupt authentication
+  }
 }
 
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request)
   const db = getDb()
 
-  if (isIPBlocked(db, ip)) {
+  const { blocked, retryAfter } = isLoginBlocked(ip)
+  if (blocked) {
     logAudit({
       action: 'login.blocked',
       ipAddress: ip,
@@ -92,8 +95,11 @@ export async function POST(request: NextRequest) {
       message: `IP address ${ip} has been blocked after too many failed login attempts.`,
     }).catch(() => { /* non-blocking */ })
     return NextResponse.json(
-      { error: 'Too many failed attempts. Please try again in 30 minutes.' },
-      { status: 429 }
+      { error: 'Too many failed attempts. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfter > 0 ? retryAfter : RETRY_AFTER_SECONDS) },
+      }
     )
   }
 
@@ -116,6 +122,7 @@ export async function POST(request: NextRequest) {
     .get(email) as UserRow | undefined
 
   if (!user) {
+    recordLoginFailure(ip)
     recordAttempt(db, ip, email, false)
     logAudit({
       action: 'login.failure',
@@ -129,6 +136,7 @@ export async function POST(request: NextRequest) {
 
   const passwordValid = await verifyPassword(password, user.password_hash)
   if (!passwordValid) {
+    recordLoginFailure(ip)
     recordAttempt(db, ip, email, false)
     logAudit({
       action: 'login.failure',

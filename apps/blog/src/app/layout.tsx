@@ -45,8 +45,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const adminApiBase =
+    process.env.NEXT_PUBLIC_ADMIN_URL ?? process.env.ADMIN_URL ?? 'http://localhost:3001'
+
   return (
     <html lang="pt-BR" className={`${inter.variable} ${newsreader.variable}`}>
+      <head>
+        <meta name="nexus-admin-api" content={adminApiBase} />
+      </head>
       <body>
         <a href="#main-content" className="skip-link">
           Pular para o conteúdo principal

@@ -1,0 +1,56 @@
+---
+description: Unit and integration testing with Vitest in apps/admin
+globs: apps/admin/src/__tests__/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Testing (Vitest)
+
+## Where tests live
+
+- Unit: `apps/admin/src/__tests__/unit/**/*.test.ts`
+- Integration: `apps/admin/src/__tests__/integration/**/*.test.ts`
+- Helpers: `apps/admin/src/__tests__/helpers/`
+- Run with `npm test --workspace=apps/admin` (or `npm run test:coverage`).
+
+## Integration tests — the DB pattern
+
+Integration tests use an in-memory SQLite created by `createTestDb()`. **Mock `@/lib/db` with `vi.mock` before importing the route under test** — never call `getDb()` directly in test setup.
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+import { createTestDb } from '../helpers/db'
+import type Database from 'better-sqlite3'
+
+let testDb: Database.Database
+
+vi.mock('@/lib/db', () => ({
+  getDb: () => testDb,
+  getSetting: vi.fn().mockReturnValue(null),
+}))
+
+vi.mock('@/lib/email', () => ({
+  sendEmailConfirmation: vi.fn().mockResolvedValue(undefined),
+  // ...mock every email helper used by the route
+}))
+
+const { POST } = await import('@/app/api/posts/route')
+
+beforeEach(() => { testDb = createTestDb() })
+```
+
+## Building requests
+
+Build `NextRequest` directly with JSON body and an `Authorization: Bearer <token>` header. Generate tokens via `generateToken({ sub, email, role })` from `@/lib/auth`.
+
+## Coverage targets
+
+| Area | Minimum line coverage |
+|---|---|
+| Auth & RBAC | 90% |
+| New utility modules | 80% |
+
+## Required test cases for new API routes
+
+At minimum, cover: success (`2xx`), `401` (no/invalid token), `403` (RBAC denial), input validation (`400`), and any sanitization invariants (e.g., XSS stripped from stored content).

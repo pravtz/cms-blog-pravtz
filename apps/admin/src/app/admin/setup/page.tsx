@@ -273,12 +273,14 @@ function FieldGroup({
 
 function Input({
   type = 'text',
+  name,
   value,
   onChange,
   placeholder,
   autoComplete,
 }: {
   type?: string
+  name?: string
   value: string
   onChange: (v: string) => void
   placeholder?: string
@@ -287,6 +289,7 @@ function Input({
   return (
     <input
       type={type}
+      name={name}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
@@ -305,6 +308,7 @@ function StepOwner({ data, errors, update }: StepProps) {
       </p>
       <FieldGroup label="Full name" error={errors.ownerName}>
         <Input
+          name="ownerName"
           value={data.ownerName}
           onChange={(v) => update('ownerName', v)}
           placeholder="Jane Doe"
@@ -314,6 +318,7 @@ function StepOwner({ data, errors, update }: StepProps) {
       <FieldGroup label="Email address" error={errors.ownerEmail}>
         <Input
           type="email"
+          name="ownerEmail"
           value={data.ownerEmail}
           onChange={(v) => update('ownerEmail', v)}
           placeholder="jane@example.com"
@@ -323,6 +328,7 @@ function StepOwner({ data, errors, update }: StepProps) {
       <FieldGroup label="Password" error={errors.ownerPassword} hint="Minimum 8 characters.">
         <Input
           type="password"
+          name="ownerPassword"
           value={data.ownerPassword}
           onChange={(v) => update('ownerPassword', v)}
           autoComplete="new-password"
@@ -331,6 +337,7 @@ function StepOwner({ data, errors, update }: StepProps) {
       <FieldGroup label="Confirm password" error={errors.ownerPasswordConfirm}>
         <Input
           type="password"
+          name="ownerPasswordConfirm"
           value={data.ownerPasswordConfirm}
           onChange={(v) => update('ownerPasswordConfirm', v)}
           autoComplete="new-password"
@@ -420,6 +427,7 @@ function StepBlogIdentity({ data, errors, update }: StepProps) {
       </p>
       <FieldGroup label="Blog name" error={errors.blogName}>
         <Input
+          name="blogName"
           value={data.blogName}
           onChange={(v) => update('blogName', v)}
           placeholder="My Awesome Blog"
@@ -437,6 +445,7 @@ function StepBlogIdentity({ data, errors, update }: StepProps) {
       </FieldGroup>
       <FieldGroup label="Blog URL" error={errors.blogUrl} hint="The public URL of your blog.">
         <Input
+          name="blogUrl"
           value={data.blogUrl}
           onChange={(v) => update('blogUrl', v)}
           placeholder="https://myblog.com"

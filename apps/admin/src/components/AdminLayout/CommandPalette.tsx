@@ -87,7 +87,6 @@ export default function CommandPalette({ open, onClose }: Props) {
     if (open) {
       setQuery('')
       setSelected(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [open])
 
@@ -133,6 +132,8 @@ export default function CommandPalette({ open, onClose }: Props) {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search commands"
             autoComplete="off"
+            // eslint-disable-next-line jsx-a11y/no-autofocus
+            autoFocus
           />
           <kbd className={styles.esc} aria-label="Press Escape to close">Esc</kbd>
         </div>

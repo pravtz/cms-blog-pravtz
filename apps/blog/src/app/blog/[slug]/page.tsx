@@ -130,20 +130,22 @@ export default async function PostPage({ params }: PostPageProps) {
 
       <main id="main-content" className={styles.main}>
         <div className={styles.container}>
-          <ArticleHeader post={post} />
-          {isRestricted ? (
-            <div className={styles.restrictedContent}>
-              {post.excerpt && (
-                <p className={styles.restrictedExcerpt}>{post.excerpt}</p>
-              )}
-              <div className={styles.blurOverlay} aria-hidden="true" />
-              <RBACBanner
-                visibility={post.visibility as 'allPrivate' | 'groupPrivate' | 'listPrivate'}
-              />
-            </div>
-          ) : (
-            <MDXContent html={post.content_html} />
-          )}
+          <article>
+            <ArticleHeader post={post} />
+            {isRestricted ? (
+              <div className={styles.restrictedContent}>
+                {post.excerpt && (
+                  <p className={styles.restrictedExcerpt}>{post.excerpt}</p>
+                )}
+                <div className={styles.blurOverlay} aria-hidden="true" />
+                <RBACBanner
+                  visibility={post.visibility as 'allPrivate' | 'groupPrivate' | 'listPrivate'}
+                />
+              </div>
+            ) : (
+              <MDXContent html={post.content_html} />
+            )}
+          </article>
         </div>
 
         {!isRestricted && (

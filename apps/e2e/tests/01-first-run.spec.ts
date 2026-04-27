@@ -18,8 +18,8 @@ test.describe('First Run Wizard', () => {
   test('setup wizard: complete all 4 steps and create owner', async ({ page }) => {
     await page.goto('/admin/setup')
 
-    // Step 1: Owner Account
-    await expect(page.getByText('Owner Account')).toBeVisible()
+    // Step 1: Owner Account (subtitle is unique; "Owner Account" also appears in progress rail)
+    await expect(page.getByText(/Step 1 of 4 — Owner Account/)).toBeVisible()
     await page.fill('[name="ownerName"], input[placeholder*="name" i], #ownerName', TEST_OWNER.name)
     await page.fill('[name="ownerEmail"], input[type="email"], #ownerEmail', TEST_OWNER.email)
     await page.fill('[name="ownerPassword"], input[type="password"]', TEST_OWNER.password)
@@ -28,24 +28,19 @@ test.describe('First Run Wizard', () => {
     await passwordInputs.nth(1).fill(TEST_OWNER.password)
     await page.getByRole('button', { name: /next|continue/i }).click()
 
-    // Step 2: Database
-    await expect(page.getByText('Database')).toBeVisible()
+    // Step 2: Database (avoid strict mode: body text also contains "database")
+    await expect(page.getByText(/Step 2 of 4 — Database/)).toBeVisible()
     await page.getByRole('button', { name: /next|continue/i }).click()
 
     // Step 3: Email (SMTP) - skip optional SMTP config
-    await expect(page.getByText(/email|smtp/i)).toBeVisible()
+    await expect(page.getByText(/Step 3 of 4 — Email \(SMTP\)/)).toBeVisible()
     await page.getByRole('button', { name: /next|continue/i }).click()
 
     // Step 4: Blog Identity
-    await expect(page.getByText(/blog identity/i)).toBeVisible()
-    const blogNameInput = page.locator(
-      '[name="blogName"], input[placeholder*="blog" i], #blogName'
-    )
-    await blogNameInput.fill('E2E Test Blog')
-    const blogUrlInput = page.locator(
-      '[name="blogUrl"], input[placeholder*="url" i], #blogUrl, input[type="url"]'
-    )
-    await blogUrlInput.fill('http://localhost:3900')
+    await expect(page.getByText(/Step 4 of 4 — Blog Identity/i)).toBeVisible()
+    // Avoid placeholder*="blog" — it matches the URL field ("my**blog**.com").
+    await page.locator('[name="blogName"]').fill('E2E Test Blog')
+    await page.locator('[name="blogUrl"]').fill('http://localhost:3900')
 
     // Submit the form
     await page.getByRole('button', { name: /complete setup|finish|submit/i }).click()

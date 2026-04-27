@@ -42,6 +42,14 @@ export async function POST() {
     db.prepare('DELETE FROM login_attempts').run()
     db.prepare('DELETE FROM settings').run()
     db.prepare('DELETE FROM users').run()
+
+    // Reseed system groups (mirrors migration 006). Required because DELETE FROM groups above
+    // wipes the rows seeded only at migration time, breaking RBAC for the next test run.
+    db.prepare(
+      `INSERT OR IGNORE INTO groups (id, name, description, is_system) VALUES
+         ('group-owner', 'owner', 'System owner group — immutable', 1),
+         ('group-default', 'default', 'Default group for all users — immutable', 1)`
+    ).run()
   })()
 
   return NextResponse.json({ ok: true, message: 'Database reset to clean state.' })

@@ -143,10 +143,11 @@ export default function AuditPage() {
         border: '1px solid var(--border)',
       }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <label htmlFor="audit-filter-action" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             Action
           </label>
           <select
+            id="audit-filter-action"
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
             style={{
@@ -163,10 +164,11 @@ export default function AuditPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <label htmlFor="audit-filter-actor-email" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             Actor Email
           </label>
           <input
+            id="audit-filter-actor-email"
             type="text"
             value={filterActorEmail}
             onChange={(e) => setFilterActorEmail(e.target.value)}
@@ -181,10 +183,11 @@ export default function AuditPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <label htmlFor="audit-filter-target-type" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             Target Type
           </label>
           <select
+            id="audit-filter-target-type"
             value={filterTargetType}
             onChange={(e) => setFilterTargetType(e.target.value)}
             style={{
@@ -201,10 +204,11 @@ export default function AuditPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <label htmlFor="audit-filter-from" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             From
           </label>
           <input
+            id="audit-filter-from"
             type="datetime-local"
             value={filterFrom}
             onChange={(e) => setFilterFrom(e.target.value)}
@@ -218,10 +222,11 @@ export default function AuditPage() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+          <label htmlFor="audit-filter-to" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
             To
           </label>
           <input
+            id="audit-filter-to"
             type="datetime-local"
             value={filterTo}
             onChange={(e) => setFilterTo(e.target.value)}

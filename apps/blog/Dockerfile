@@ -10,6 +10,15 @@ COPY apps/admin/package.json ./apps/admin/
 COPY apps/blog/package.json ./apps/blog/
 RUN npm ci --workspace=@nexus/blog
 
+# ── Development ────────────────────────────────────────────────────────────────
+FROM base AS development
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--workspace=@nexus/blog"]
+
 # ── Builder ────────────────────────────────────────────────────────────────────
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules

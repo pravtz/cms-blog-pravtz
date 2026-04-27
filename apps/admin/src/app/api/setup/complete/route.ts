@@ -59,6 +59,14 @@ export async function POST(request: NextRequest) {
          VALUES (?, ?, ?, ?, 'owner', 'active')`
       ).run(userId, data.ownerName, data.ownerEmail, passwordHash)
 
+      // Add owner to system groups so RBAC checks that delegate to group membership succeed.
+      db.prepare(
+        `INSERT OR IGNORE INTO group_members (user_id, group_id) VALUES (?, 'group-owner')`
+      ).run(userId)
+      db.prepare(
+        `INSERT OR IGNORE INTO group_members (user_id, group_id) VALUES (?, 'group-default')`
+      ).run(userId)
+
       // Save settings
       const settings: Record<string, string> = {
         blog_name: data.blogName,

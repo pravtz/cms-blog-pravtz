@@ -44,6 +44,25 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/admin/categories',
+    label: 'Categorias',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/admin/tags',
+    label: 'Tags',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/users',
     label: 'Users',
     icon: (
@@ -305,32 +324,35 @@ export default function DynamicSidebar({ pendingCount }: Props) {
         </svg>
       </button>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay + drawer (only rendered when open so focus is trapped properly
+          and the drawer isn't reachable via tab/screen reader when closed) */}
       {mobileOpen && (
-        <div
-          className={styles.overlay}
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
+        <>
+          <div
+            className={styles.overlay}
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <aside
+            className={`${styles.drawer} ${styles.drawerOpen}`}
+            aria-label="Navigation drawer"
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              className={styles.drawerClose}
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            {navContent}
+          </aside>
+        </>
       )}
-
-      {/* Mobile drawer */}
-      <aside
-        className={`${styles.drawer} ${mobileOpen ? styles.drawerOpen : ''}`}
-        aria-label="Navigation drawer"
-      >
-        <button
-          className={styles.drawerClose}
-          onClick={() => setMobileOpen(false)}
-          aria-label="Close navigation"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-        {navContent}
-      </aside>
     </>
   )
 }

@@ -411,7 +411,7 @@ export default function SettingsPage() {
             href="https://clarity.microsoft.com"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: 'var(--accent)' }}
+            style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 2 }}
           >
             Microsoft Clarity
           </a>{' '}

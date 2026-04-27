@@ -97,16 +97,35 @@ export async function loginViaApi(
 export async function loginViaUI(
   page: Page,
   email: string,
-  password: string
+  password: string,
+  options?: { blogBaseUrl?: string }
 ) {
   await page.goto('/admin/login')
   await page.fill('#email', email)
   await page.fill('#password', password)
   await page.click('button[type="submit"]')
 
-  // Store token in localStorage (mimics what the login form does)
-  // The login form navigates to dashboard on success
   await page.waitForURL(/\/admin\/(dashboard|interests)/, { timeout: 10_000 })
+
+  // Copy admin tokens to blog origin so fetchAdminSession() works cross-port (SameSite cookies are not sent).
+  if (options?.blogBaseUrl) {
+    const creds = await page.evaluate(() => ({
+      token: localStorage.getItem('accessToken'),
+      user: localStorage.getItem('currentUser') ?? '{}',
+    }))
+    if (!creds.token) {
+      throw new Error('loginViaUI: accessToken missing after login')
+    }
+    await page.goto(options.blogBaseUrl, { waitUntil: 'load' })
+    await page.evaluate(
+      ([t, u]) => {
+        window.localStorage.setItem('accessToken', t)
+        window.localStorage.setItem('currentUser', u)
+      },
+      [creds.token, creds.user] as [string, string]
+    )
+    await page.reload({ waitUntil: 'load' })
+  }
 }
 
 export async function setLocalStorageAuth(page: Page, accessToken: string, user: object) {
@@ -117,6 +136,38 @@ export async function setLocalStorageAuth(page: Page, accessToken: string, user:
     },
     [accessToken, JSON.stringify(user)] as [string, string]
   )
+}
+
+/**
+ * Open a blog URL with accessToken + currentUser already in localStorage before any client JS runs.
+ * Uses API login + /api/auth/me (same payload shape as admin UI login).
+ */
+export async function openBlogWithAuth(
+  page: Page,
+  request: APIRequestContext,
+  email: string,
+  password: string,
+  blogPageUrl: string
+) {
+  const token = await loginViaApi(request, email, password)
+  const meRes = await request.get(`${ADMIN_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!meRes.ok()) {
+    throw new Error(`openBlogWithAuth: /api/auth/me failed: ${await meRes.text()}`)
+  }
+  const { user } = (await meRes.json()) as { user: object }
+  const userJson = JSON.stringify(user)
+
+  await page.goto(blogPageUrl, { waitUntil: 'load' })
+  await page.evaluate(
+    ([t, u]) => {
+      window.localStorage.setItem('accessToken', t)
+      window.localStorage.setItem('currentUser', u)
+    },
+    [token, userJson] as [string, string]
+  )
+  await page.reload({ waitUntil: 'load' })
 }
 
 // ── Post creation helper ─────────────────────────────────────────────────────

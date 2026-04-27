@@ -13,11 +13,15 @@ export default function HeroSection({ post }: HeroSectionProps) {
 
   return (
     <section className={styles.hero} aria-label="Featured post">
-      <Link href={`/blog/${post.slug}`} className={styles.imageWrapper}>
+      <Link
+        href={`/blog/${post.slug}`}
+        className={styles.imageWrapper}
+        aria-label={post.title}
+      >
         {post.cover_image ? (
           <Image
             src={post.cover_image}
-            alt={post.title}
+            alt=""
             fill
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px"

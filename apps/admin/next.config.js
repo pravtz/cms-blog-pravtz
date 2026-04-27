@@ -44,6 +44,7 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   experimental: {
     serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
     instrumentationHook: true,

@@ -85,9 +85,7 @@ test.describe('User Registration, Email Confirmation, and Admin Approval', () =>
 
     // Should see the pending user
     await expect(page.getByText(TEST_USER.email)).toBeVisible({ timeout: 10_000 })
-    await expect(
-      page.getByText(/pending.*approval|awaiting approval/i)
-    ).toBeVisible()
+    await expect(page.getByText('Awaiting Approval', { exact: true })).toBeVisible()
   })
 
   test('owner approves the user via API', async ({ request }) => {
@@ -114,12 +112,14 @@ test.describe('User Registration, Email Confirmation, and Admin Approval', () =>
 
   test('approved user can log in and access dashboard', async ({ page }) => {
     await page.goto('/admin/login')
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('#email')).toBeVisible({ timeout: 10_000 })
     await page.fill('#email', TEST_USER.email)
     await page.fill('#password', TEST_USER.password)
     await page.click('button[type="submit"]')
 
-    // Should reach dashboard or interests page (first login)
-    await expect(page).toHaveURL(/\/admin\/(dashboard|interests)/, { timeout: 10_000 })
+    // First login may land on interests (first_login_done) or dashboard
+    await page.waitForURL(/\/admin\/(dashboard|interests)/, { timeout: 20_000 })
   })
 
   test('login is blocked for unconfirmed user', async ({ request, page }) => {

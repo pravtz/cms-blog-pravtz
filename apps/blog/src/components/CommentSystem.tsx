@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import styles from './CommentSystem.module.css'
-
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
+import { fetchAdminSession } from '@/lib/fetchAdminSession'
+import { getAdminApiBaseUrl } from '@/lib/adminApiBaseUrl'
 
 interface Author {
   name: string
@@ -177,18 +177,11 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const fetchSession = useCallback(async () => {
-    try {
-      const res = await fetch(`${ADMIN_URL}/api/auth/session`, {
-        credentials: 'include',
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.user) {
-          setCurrentUser(data.user)
-          setAccessToken(data.accessToken)
-        }
-      }
-    } catch { /* no session */ }
+    const session = await fetchAdminSession()
+    if (session) {
+      setCurrentUser(session.user)
+      setAccessToken(session.accessToken)
+    }
   }, [])
 
   const fetchComments = useCallback(async (token: string | null) => {
@@ -196,7 +189,7 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const res = await fetch(`${ADMIN_URL}/api/blog/comments?postId=${encodeURIComponent(postId)}`, {
+      const res = await fetch(`${getAdminApiBaseUrl()}/api/blog/comments?postId=${encodeURIComponent(postId)}`, {
         headers,
       })
       if (res.ok) {
@@ -220,7 +213,7 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
   const handleVote = useCallback(async (commentId: string, vote: 1 | -1) => {
     if (!accessToken) return
 
-    const res = await fetch(`${ADMIN_URL}/api/blog/comments/${commentId}/vote`, {
+    const res = await fetch(`${getAdminApiBaseUrl()}/api/blog/comments/${commentId}/vote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -258,7 +251,7 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
   const handleReport = useCallback(async (commentId: string) => {
     if (!accessToken || !confirm('Report this comment as inappropriate?')) return
 
-    const res = await fetch(`${ADMIN_URL}/api/blog/comments/${commentId}/report`, {
+    const res = await fetch(`${getAdminApiBaseUrl()}/api/blog/comments/${commentId}/report`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
     })
@@ -285,7 +278,7 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
     setError('')
 
     try {
-      const res = await fetch(`${ADMIN_URL}/api/blog/comments`, {
+      const res = await fetch(`${getAdminApiBaseUrl()}/api/blog/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -341,14 +334,14 @@ export default function CommentSystem({ postId, postSlug }: CommentSystemProps) 
         <div className={styles.loginBanner} role="note">
           <p>
             <a
-              href={`${ADMIN_URL}/admin/login`}
+              href={`${getAdminApiBaseUrl()}/admin/login`}
               className={styles.loginLink}
             >
               Log in
             </a>{' '}
             or{' '}
             <a
-              href={`${ADMIN_URL}/admin/register`}
+              href={`${getAdminApiBaseUrl()}/admin/register`}
               className={styles.loginLink}
             >
               create an account

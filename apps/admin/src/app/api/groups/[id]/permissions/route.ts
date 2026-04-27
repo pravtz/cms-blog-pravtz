@@ -8,6 +8,51 @@ import { logAudit } from '@/lib/audit'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/**
+ * Convert boolean-map permissions to granted-operations-array format:
+ *   { posts: { read: true, write: true, delete: false, manage: false } }
+ *   → { posts: ['read', 'write'], ... }
+ *
+ * This is the canonical format returned by the GET endpoint, matching what
+ * the E2E tests expect when using `.toContain('read')`.
+ */
+function toArrayFormat(
+  perms: Record<Resource, Record<Operation, boolean>>
+): Record<Resource, Operation[]> {
+  const result = {} as Record<Resource, Operation[]>
+  for (const resource of ALL_RESOURCES) {
+    result[resource] = ALL_OPERATIONS.filter((op) => perms[resource][op])
+  }
+  return result
+}
+
+/**
+ * Normalize incoming permission payload — accepts BOTH formats:
+ *   • Array format:  { posts: ['read', 'write'] }
+ *   • Boolean map:   { posts: { read: true, write: false } }
+ *
+ * Always returns the boolean-map format used internally for persistence.
+ */
+function normalizeInput(
+  raw: Partial<Record<Resource, Operation[] | Partial<Record<Operation, boolean>>>>
+): Partial<Record<Resource, Partial<Record<Operation, boolean>>>> {
+  const result: Partial<Record<Resource, Partial<Record<Operation, boolean>>>> = {}
+  for (const resource of ALL_RESOURCES) {
+    const val = raw[resource]
+    if (val === undefined) continue
+    if (Array.isArray(val)) {
+      const boolMap: Partial<Record<Operation, boolean>> = {}
+      for (const op of ALL_OPERATIONS) {
+        boolMap[op] = val.includes(op)
+      }
+      result[resource] = boolMap
+    } else {
+      result[resource] = val as Partial<Record<Operation, boolean>>
+    }
+  }
+  return result
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -24,8 +69,8 @@ export async function GET(
     return NextResponse.json({ error: 'Group not found.' }, { status: 404 })
   }
 
-  const permissions = getGroupPermissions(db, params.id)
-  return NextResponse.json({ group, permissions })
+  const rawPerms = getGroupPermissions(db, params.id)
+  return NextResponse.json({ group, permissions: toArrayFormat(rawPerms) })
 }
 
 export async function PUT(
@@ -53,13 +98,15 @@ export async function PUT(
   }
 
   const body = await request.json()
-  const { permissions } = body as {
-    permissions: Partial<Record<Resource, Partial<Record<Operation, boolean>>>>
+  const { permissions: rawPermissions } = body as {
+    permissions: Partial<Record<Resource, Operation[] | Partial<Record<Operation, boolean>>>>
   }
 
-  if (!permissions || typeof permissions !== 'object') {
+  if (!rawPermissions || typeof rawPermissions !== 'object' || Array.isArray(rawPermissions)) {
     return NextResponse.json({ error: 'permissions object is required.' }, { status: 400 })
   }
+
+  const permissions = normalizeInput(rawPermissions)
 
   const updatePermissions = db.transaction(() => {
     db.prepare('DELETE FROM group_permissions WHERE group_id = ?').run(params.id)
@@ -90,5 +137,5 @@ export async function PUT(
     userAgent: request.headers.get('user-agent'),
   })
 
-  return NextResponse.json({ group, permissions: updated })
+  return NextResponse.json({ group, permissions: toArrayFormat(updated) })
 }

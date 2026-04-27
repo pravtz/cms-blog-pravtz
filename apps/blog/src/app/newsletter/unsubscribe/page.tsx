@@ -41,7 +41,7 @@ function UnsubscribeContent() {
     <div className={styles.card}>
       {status === 'loading' && (
         <>
-          <div className={styles.spinner} aria-label="Carregando…" />
+          <div className={styles.spinner} role="status" aria-label="Carregando…" />
           <p className={styles.text}>Processando cancelamento…</p>
         </>
       )}
@@ -80,7 +80,7 @@ export default function NewsletterUnsubscribePage() {
     <main className={styles.main}>
       <Suspense fallback={
         <div className={styles.card}>
-          <div className={styles.spinner} aria-label="Carregando…" />
+          <div className={styles.spinner} role="status" aria-label="Carregando…" />
         </div>
       }>
         <UnsubscribeContent />

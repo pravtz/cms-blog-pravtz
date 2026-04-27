@@ -75,7 +75,10 @@ export default function PostsPage() {
     if (statusFilter) params.set('status', statusFilter)
     params.set('page', String(page))
     try {
-      const res = await fetch(`/api/posts?${params}`)
+      const res = await fetch(`/api/posts?${params}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+      })
+      if (res.status === 401) throw new Error('Sessão expirada, faça login novamente')
       if (!res.ok) throw new Error('Failed to load posts')
       const data: PostsResponse = await res.json()
       setPosts(data.posts)
@@ -97,9 +100,13 @@ export default function PostsPage() {
     try {
       const res = await fetch(`/api/posts/${post.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}`,
+        },
         body: JSON.stringify({ status: newStatus }),
       })
+      if (res.status === 401) throw new Error('Sessão expirada, faça login novamente')
       if (!res.ok) throw new Error('Update failed')
       await fetchPosts()
     } catch {
@@ -113,7 +120,11 @@ export default function PostsPage() {
     if (!confirm(`Delete "${post.title || 'Untitled'}"? This cannot be undone.`)) return
     setActionLoading(post.id)
     try {
-      const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+      })
+      if (res.status === 401) throw new Error('Sessão expirada, faça login novamente')
       if (!res.ok) throw new Error('Delete failed')
       await fetchPosts()
     } catch {

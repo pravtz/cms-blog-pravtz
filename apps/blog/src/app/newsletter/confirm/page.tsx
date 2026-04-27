@@ -41,7 +41,7 @@ function ConfirmContent() {
     <div className={styles.card}>
       {status === 'loading' && (
         <>
-          <div className={styles.spinner} aria-label="Carregando…" />
+          <div className={styles.spinner} role="status" aria-label="Carregando…" />
           <p className={styles.text}>Confirmando sua inscrição…</p>
         </>
       )}
@@ -76,7 +76,7 @@ export default function NewsletterConfirmPage() {
     <main className={styles.main}>
       <Suspense fallback={
         <div className={styles.card}>
-          <div className={styles.spinner} aria-label="Carregando…" />
+          <div className={styles.spinner} role="status" aria-label="Carregando…" />
         </div>
       }>
         <ConfirmContent />

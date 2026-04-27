@@ -1,5 +1,17 @@
 /** @type {import('next').NextConfig} */
 
+function adminOriginForCsp() {
+  const raw = process.env.NEXT_PUBLIC_ADMIN_URL || process.env.ADMIN_URL || ''
+  if (!raw) return ''
+  try {
+    return new URL(raw).origin
+  } catch {
+    return ''
+  }
+}
+
+const adminConnectOrigin = adminOriginForCsp()
+
 const securityHeaders = [
   {
     key: 'X-Content-Type-Options',
@@ -33,7 +45,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://www.clarity.ms https://c.bing.com",
+      // Blog client calls admin API (session, comments, likes, shares) — must allow that origin.
+      `connect-src 'self'${adminConnectOrigin ? ` ${adminConnectOrigin}` : ''} https://www.clarity.ms https://c.bing.com`,
       "frame-src 'none'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -44,6 +57,7 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
     remotePatterns: [
       {

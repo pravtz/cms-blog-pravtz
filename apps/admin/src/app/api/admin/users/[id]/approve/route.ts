@@ -56,5 +56,5 @@ export async function POST(
     userAgent: request.headers.get('user-agent'),
   })
 
-  return NextResponse.json({ message: 'User approved.' })
+  return NextResponse.json({ message: 'User approved.', user: { id: user.id, status: 'active' } })
 }

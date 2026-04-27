@@ -86,6 +86,10 @@ function UsersContent() {
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        router.replace('/admin/login')
+        return
+      }
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
       setUsers(data.users)
@@ -94,7 +98,7 @@ function UsersContent() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, token, toast])
+  }, [statusFilter, token, toast, router])
 
   const fetchGroups = useCallback(async () => {
     try {

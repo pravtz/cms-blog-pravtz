@@ -38,11 +38,21 @@ function NewPostContent() {
 
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}`,
+      },
       body: JSON.stringify(body),
     })
 
-    if (!res.ok) throw new Error('Save failed')
+    if (res.status === 401) throw new Error('Sessão expirada, faça login novamente')
+    if (!res.ok) {
+      if (res.status === 400) {
+        const json = await res.json().catch(() => ({})) as { details?: string; error?: string }
+        throw new Error(json.details ?? json.error ?? 'Dados inválidos')
+      }
+      throw new Error('Save failed')
+    }
 
     if (method === 'POST') {
       const { post } = await res.json()

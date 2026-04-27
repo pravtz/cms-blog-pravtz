@@ -105,9 +105,9 @@ test.describe('RBAC Permissions per Group', () => {
     await page.goto('/admin/groups')
     await page.waitForLoadState('networkidle')
 
-    // Groups page should show system groups
-    await expect(page.getByText('owner')).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByText('default')).toBeVisible()
+    // Groups page should show system groups (avoid strict mode: description cells also contain "owner")
+    await expect(page.getByRole('link', { name: 'owner', exact: true })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('link', { name: 'default', exact: true })).toBeVisible()
   })
 
   test('owner can navigate to group detail and see permissions matrix', async ({ page }) => {

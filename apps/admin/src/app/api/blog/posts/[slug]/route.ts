@@ -79,8 +79,11 @@ export async function GET(
       .get(post.translation_group_id as string, post.id as string) as typeof translation
   }
 
-  // Render content to HTML
-  const content_html = await renderMDX((post.content as string) || '')
+  const RESTRICTED_VISIBILITIES = new Set(['allPrivate', 'groupPrivate', 'listPrivate'])
+  const isRestricted = RESTRICTED_VISIBILITIES.has(post.visibility as string)
+
+  // Only render content for public posts — restricted posts must not leak content_html
+  const content_html = isRestricted ? null : await renderMDX((post.content as string) || '')
 
   // Get recommendations: 3 posts from same category, excluding current
   let recommendations: unknown[] = []

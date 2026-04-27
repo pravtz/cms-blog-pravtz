@@ -73,7 +73,8 @@
 }
 
 .input:focus {
-  outline: none;
+  outline: 2px solid var(--accent, #7c6af7);
+  outline-offset: 2px;
   border-color: var(--accent, #7c6af7);
   box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.15);
 }
@@ -132,11 +133,13 @@
 
 .link {
   color: var(--accent, #7c6af7);
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .link:hover {
   text-decoration: underline;
+  opacity: 0.85;
 }
 
 .optional {

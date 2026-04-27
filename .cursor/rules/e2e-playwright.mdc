@@ -1,0 +1,29 @@
+---
+description: E2E tests with Playwright (apps/e2e)
+globs: apps/e2e/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# E2E Tests (Playwright)
+
+E2E tests live in `apps/e2e/` and run against the full Docker Compose stack (admin + blog + Redis + nginx + PostgreSQL + MailHog).
+
+## Running
+
+```bash
+npm run test:e2e                          # full suite (excludes @a11y in CI split)
+npm run test:e2e -- --grep @a11y          # accessibility-only
+```
+
+## Conventions
+
+- Place specs under `apps/e2e/tests/`. Shared fixtures go in `apps/e2e/fixtures/`.
+- Tag accessibility specs with `@a11y` in the test title — the CI splits the run on this tag.
+- A11y assertions use `axe-core` (via `@axe-core/playwright`); zero AA violations are required.
+- Capture emails via MailHog (`http://localhost:8025`) — never hit a real SMTP server.
+- Use stable selectors: `getByRole`, `getByLabel`, `getByTestId`. Avoid raw CSS class selectors that may change.
+- Tests must be idempotent: clean up created entities or use unique data per run (timestamps, UUIDs).
+
+## When to add an E2E test
+
+Add an E2E spec for any **critical user flow**: login, post publish, comment moderation, newsletter double opt-in, RBAC denial, etc. Smaller behaviors stay as Vitest integration tests.

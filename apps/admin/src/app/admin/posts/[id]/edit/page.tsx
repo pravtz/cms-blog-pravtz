@@ -35,8 +35,11 @@ export default function EditPostPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`/api/posts/${id}`)
+    fetch(`/api/posts/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}` },
+    })
       .then((r) => {
+        if (r.status === 401) throw new Error('Sessão expirada, faça login novamente')
         if (!r.ok) throw new Error('Post not found')
         return r.json()
       })
@@ -96,11 +99,21 @@ export default function EditPostPage() {
     }
     const res = await fetch(`/api/posts/${data.id ?? id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('accessToken') ?? ''}`,
+      },
       body: JSON.stringify(body),
     })
 
-    if (!res.ok) throw new Error('Save failed')
+    if (res.status === 401) throw new Error('Sessão expirada, faça login novamente')
+    if (!res.ok) {
+      if (res.status === 400) {
+        const json = await res.json().catch(() => ({})) as { details?: string; error?: string }
+        throw new Error(json.details ?? json.error ?? 'Dados inválidos')
+      }
+      throw new Error('Save failed')
+    }
     return undefined
   }
 

@@ -84,11 +84,13 @@ export default function NewsletterCard() {
 
         <label className={styles.privacyLabel}>
           <input
+            id="newsletter-privacy"
             type="checkbox"
             checked={privacy}
             onChange={(e) => setPrivacy(e.target.checked)}
             className={styles.checkbox}
             required
+            aria-label="Li e aceito a política de privacidade"
           />
           <span>
             Li e aceito a{' '}

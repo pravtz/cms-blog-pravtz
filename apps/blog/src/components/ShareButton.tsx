@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import styles from './ShareButton.module.css'
-
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
+import { fetchAdminSession } from '@/lib/fetchAdminSession'
+import { getAdminApiBaseUrl } from '@/lib/adminApiBaseUrl'
 
 interface ShareButtonProps {
   postSlug: string
@@ -22,25 +22,21 @@ export default function ShareButton({ postSlug, postTitle, initialShareCount }: 
   useEffect(() => {
     async function init() {
       try {
-        const res = await fetch(`${ADMIN_URL}/api/auth/session`, {
-          credentials: 'include',
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user && data.accessToken) {
-            setIsLoggedIn(true)
-            setAccessToken(data.accessToken)
-          }
+        const session = await fetchAdminSession()
+        if (session?.user && session.accessToken) {
+          setIsLoggedIn(true)
+          setAccessToken(session.accessToken)
         }
-        // Fetch current share count
         const shareRes = await fetch(
-          `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/shares`
+          `${getAdminApiBaseUrl()}/api/blog/posts/${encodeURIComponent(postSlug)}/shares`
         )
         if (shareRes.ok) {
           const shareData = await shareRes.json()
           setShareCount(shareData.shareCount)
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     init()
   }, [postSlug])
@@ -61,7 +57,7 @@ export default function ShareButton({ postSlug, postTitle, initialShareCount }: 
     if (!isLoggedIn || !accessToken) return
     try {
       const res = await fetch(
-        `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/shares`,
+        `${getAdminApiBaseUrl()}/api/blog/posts/${encodeURIComponent(postSlug)}/shares`,
         {
           method: 'POST',
           headers: {

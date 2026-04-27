@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import styles from './LikeButton.module.css'
-
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
+import { fetchAdminSession } from '@/lib/fetchAdminSession'
+import { getAdminApiBaseUrl } from '@/lib/adminApiBaseUrl'
 
 interface LikeButtonProps {
   postSlug: string
@@ -23,37 +23,32 @@ export default function LikeButton({ postSlug, initialLikeCount }: LikeButtonPro
   useEffect(() => {
     async function init() {
       try {
-        const res = await fetch(`${ADMIN_URL}/api/auth/session`, {
-          credentials: 'include',
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user && data.accessToken) {
-            setIsLoggedIn(true)
-            setAccessToken(data.accessToken)
+        const session = await fetchAdminSession()
+        if (session?.user && session.accessToken) {
+          setIsLoggedIn(true)
+          setAccessToken(session.accessToken)
 
-            // Fetch user's like status
-            const likeRes = await fetch(
-              `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`,
-              { headers: { Authorization: `Bearer ${data.accessToken}` } }
-            )
-            if (likeRes.ok) {
-              const likeData = await likeRes.json()
-              setLikeCount(likeData.likeCount)
-              setUserLiked(likeData.userLiked)
-            }
-          } else {
-            // Fetch public like count without auth
-            const likeRes = await fetch(
-              `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`
-            )
-            if (likeRes.ok) {
-              const likeData = await likeRes.json()
-              setLikeCount(likeData.likeCount)
-            }
+          const likeRes = await fetch(
+            `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`,
+            { headers: { Authorization: `Bearer ${session.accessToken}` } }
+          )
+          if (likeRes.ok) {
+            const likeData = await likeRes.json()
+            setLikeCount(likeData.likeCount)
+            setUserLiked(likeData.userLiked)
+          }
+        } else {
+          const likeRes = await fetch(
+            `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`
+          )
+          if (likeRes.ok) {
+            const likeData = await likeRes.json()
+            setLikeCount(likeData.likeCount)
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     init()
   }, [postSlug])
@@ -81,7 +76,7 @@ export default function LikeButton({ postSlug, initialLikeCount }: LikeButtonPro
     setLoading(true)
     try {
       const res = await fetch(
-        `${ADMIN_URL}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`,
+        `${getAdminApiBaseUrl()}/api/blog/posts/${encodeURIComponent(postSlug)}/likes`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -133,7 +128,11 @@ export default function LikeButton({ postSlug, initialLikeCount }: LikeButtonPro
       </button>
 
       {showTooltip && (
-        <div className={styles.tooltip} role="tooltip">
+        <div
+          className={styles.tooltip}
+          role="tooltip"
+          aria-label="Login to like this post"
+        >
           Login to like this post
         </div>
       )}

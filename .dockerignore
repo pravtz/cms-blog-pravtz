@@ -1,0 +1,32 @@
+# Dependencies — always rebuilt inside the container
+node_modules
+**/node_modules
+
+# Next.js build output
+**/.next
+**/.next-e2e
+**/out
+
+# Git / IDE
+.git
+.gitignore
+.cursor
+.vscode
+
+# Test artifacts
+apps/e2e/test-results
+apps/e2e/playwright-report
+
+# Env files (use secrets / env vars at runtime)
+.env
+.env.*
+!.env.example
+
+# Docs
+docs/
+*.md
+!apps/*/README.md
+
+# Misc
+.DS_Store
+*.log

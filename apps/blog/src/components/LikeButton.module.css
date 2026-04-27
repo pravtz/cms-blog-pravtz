@@ -2,6 +2,8 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  overflow: visible;
+  z-index: 2;
 }
 
 .button {
@@ -77,7 +79,7 @@
   white-space: nowrap;
   box-shadow: var(--shadow-md);
   pointer-events: none;
-  z-index: 10;
+  z-index: 50;
 }
 
 .tooltip::after {

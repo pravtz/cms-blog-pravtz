@@ -1,0 +1,35 @@
+---
+description: SQLite schema, migrations, and DB access conventions
+globs: apps/admin/src/lib/db.ts,apps/admin/src/__tests__/helpers/db.ts
+alwaysApply: false
+---
+
+# Database & Migrations
+
+The admin app uses `better-sqlite3` with WAL mode and `foreign_keys = ON`. Access goes through `getDb()` in `apps/admin/src/lib/db.ts`.
+
+## Adding a migration
+
+1. Append a new entry to the `migrations` map in `runMigrations()` in `apps/admin/src/lib/db.ts`. Use the next sequential prefix: `'00N_<short_name>'`.
+2. Mirror the same migration in `apps/admin/src/__tests__/helpers/db.ts` so integration tests stay in sync. Tests run against in-memory SQLite seeded by `createTestDb()`.
+
+## SQL patterns (mandatory)
+
+- `CREATE TABLE IF NOT EXISTS ...`
+- `CREATE INDEX IF NOT EXISTS ...`
+- `INSERT OR IGNORE` / `ON CONFLICT(...) DO UPDATE` for idempotent inserts.
+- `ALTER TABLE` adds must be guarded so re-running the migration does not throw.
+- IDs are `TEXT PRIMARY KEY` (UUID v4 from `uuid`).
+- Timestamps: `TEXT NOT NULL DEFAULT (datetime('now'))`.
+
+## Query patterns
+
+- Use prepared statements: `db.prepare(sql).get(...) / .all(...) / .run(...)`.
+- Parameterize all user input — never concatenate strings into SQL.
+- Wrap multi-statement writes in `db.transaction(() => { ... })()`.
+- Cast result rows with explicit types: `db.prepare('...').get(id) as { id: string; n: number } | undefined`.
+
+## Don't
+
+- Don't call `getDb()` from module top-level outside `lib/`. Inside route handlers, call it inside the handler so tests can mock `@/lib/db`.
+- Don't bypass migrations by running raw `db.exec()` from app code.

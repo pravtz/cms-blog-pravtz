@@ -1,0 +1,61 @@
+---
+description: Conventions for Next.js API routes in apps/admin
+globs: apps/admin/src/app/api/**/*.ts
+alwaysApply: false
+---
+
+# Admin API Routes
+
+## Required exports (top of every route file)
+
+Routes that touch native Node modules (DB, fs, jwt, bcrypt, etc.) must opt out of edge/static:
+
+```typescript
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+```
+
+## Authentication (private routes — under `/api/...`, not `/api/v1/...`)
+
+Use the helpers from `@/lib/auth-middleware`:
+
+```typescript
+import { requireAuth, requireRole } from '@/lib/auth-middleware'
+
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+  // auth.payload.sub / auth.payload.role available
+}
+```
+
+For RBAC checks beyond role gates, use the helpers in `@/lib/rbac` (`canCreatePost`, etc.).
+
+## Public v1 routes (`/api/v1/...`)
+
+- Implement `OPTIONS` with `handleOptions()` (CORS preflight).
+- Call `applyRateLimit(request)` first; bail with the returned `error` if present.
+- Always attach `headers` from `applyRateLimit` (or `buildV1Headers`) to responses.
+- Only `GET` (and `OPTIONS`) are publicly allowed.
+
+```typescript
+import { applyRateLimit, handleOptions } from '@/lib/v1-helpers'
+
+export async function OPTIONS() { return handleOptions() }
+
+export async function GET(request: NextRequest) {
+  const { headers, error } = await applyRateLimit(request)
+  if (error) return error
+  // ... query DB ...
+  return NextResponse.json({ data, meta }, { headers })
+}
+```
+
+## Other rules
+
+- Validate all body/query input with `zod`; return `400` with `error.flatten()` on failure.
+- Sanitize free-text content with `sanitizeMDX` / `sanitize-html` before persisting.
+- Return `404` (not `403`) for private resources to prevent enumeration.
+- Audit privileged actions via `logAudit({ action, actorId, actorEmail, targetId, targetType, metadata, ipAddress, userAgent })`.
+- Use `db.transaction(() => { ... })()` for multi-statement writes.
+- Never echo back secrets (raw API keys, password hashes, JWTs); use `maskApiKey()`.

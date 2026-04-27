@@ -2,16 +2,17 @@
 
 import { useEffect } from 'react'
 
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
+import { getAdminApiBaseUrl } from '@/lib/adminApiBaseUrl'
 
 export default function ClarityScript() {
   useEffect(() => {
     let cancelled = false
 
     async function init() {
+      const adminUrl = getAdminApiBaseUrl()
       try {
         // Fetch Clarity config (public endpoint, short cache)
-        const configRes = await fetch(`${ADMIN_URL}/api/blog/clarity-config`, {
+        const configRes = await fetch(`${adminUrl}/api/blog/clarity-config`, {
           cache: 'no-store',
         })
         if (!configRes.ok) return
@@ -19,7 +20,7 @@ export default function ClarityScript() {
         if (!config.enabled || !config.projectId) return
 
         // Only load Clarity for non-logged-in visitors
-        const sessionRes = await fetch(`${ADMIN_URL}/api/auth/session`, {
+        const sessionRes = await fetch(`${adminUrl}/api/auth/session`, {
           credentials: 'include',
         })
         const session = sessionRes.ok
